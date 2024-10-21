@@ -1,0 +1,119 @@
+﻿@model Hospital_Managment_System.Models.Doctor
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+@{
+    ViewData["Title"] = "Create Doctor";
+}
+
+<h1>Create Doctor</h1>
+
+<h4>Doctor Information</h4>
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="All" class="text-danger"></div>
+
+            <!-- First Name -->
+            <div class="form-group">
+                <label asp-for="FirstName" class="control-label"></label>
+                <input asp-for="FirstName" class="form-control" />
+                <span asp-validation-for="FirstName" class="text-danger"></span>
+            </div>
+
+            <!-- Last Name -->
+            <div class="form-group">
+                <label asp-for="LastName" class="control-label"></label>
+                <input asp-for="LastName" class="form-control" />
+                <span asp-validation-for="LastName" class="text-danger"></span>
+            </div>
+
+            <!-- Birth Date -->
+            <div class="form-group">
+                <label asp-for="BirthDate" class="control-label"></label>
+                <input asp-for="BirthDate" class="form-control" type="date" />
+                <span asp-validation-for="BirthDate" class="text-danger"></span>
+            </div>
+
+            <!-- Gender -->
+            <div class="form-group">
+                <label asp-for="Gender" class="control-label"></label>
+                <select asp-for="Gender" class="form-control">
+                    <option value="">Select Gender</option>
+                    <option value="Male" selected="@(Model.Gender == Hospital_Managment_System.Enums.Gender.Male)">Male</option>
+                    <option value="Female" selected="@(Model.Gender == Hospital_Managment_System.Enums.Gender.Female)">Female</option>
+                    <option value="Other" selected="@(Model.Gender == Hospital_Managment_System.Enums.Gender.Other)">Other</option>
+                </select>
+                <span asp-validation-for="Gender" class="text-danger"></span>
+            </div>
+
+
+            <!-- Email -->
+            <div class="form-group">
+                <label asp-for="Email" class="control-label"></label>
+                <input asp-for="Email" class="form-control" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+
+            <!-- Phone -->
+            <div class="form-group">
+                <label asp-for="Phone" class="control-label"></label>
+                <input asp-for="Phone" class="form-control" />
+                <span asp-validation-for="Phone" class="text-danger"></span>
+            </div>
+
+            <!-- Specialization -->
+            <div class="form-group">
+                <label asp-for="Specialization" class="control-label"></label>
+                <select asp-for="Specialization" class="form-control">
+                    <option value="">Select Specialization</option>
+                    @foreach (var specialization in Enum.GetValues(typeof(Hospital_Managment_System.Enums.DoctorSpecialization)))
+                    {
+                        var isSelected = Model.Specialization == (Hospital_Managment_System.Enums.DoctorSpecialization)specialization ? "selected" : "";
+                        <option value="@specialization" selected="@isSelected">@specialization</option>
+                    }
+                </select>
+                <span asp-validation-for="Specialization" class="text-danger"></span>
+            </div>
+
+            <!-- Status -->
+            <div class="form-group">
+                <label asp-for="Status" class="control-label"></label>
+                <select asp-for="Status" class="form-control">
+                    <option value="">Select Status</option>
+                    @foreach (var status in Enum.GetValues(typeof(Hospital_Managment_System.Enums.DoctorStatus)))
+                    {
+                        var isSelected = Model.Status == (Hospital_Managment_System.Enums.DoctorStatus)status ? "selected" : "";
+                        <option value="@status" selected="@isSelected">@status</option>
+                    }
+                </select>
+                <span asp-validation-for="Status" class="text-danger"></span>
+            </div>
+
+            <!-- Department -->
+            <div class="form-group">
+                <label asp-for="DepartmentId" class="control-label"></label>
+                <select asp-for="DepartmentId" class="form-control">
+                    <option value="">Select Department</option>
+                    @foreach (var department in ViewBag.Departments as List<Hospital_Managment_System.Models.Department>)
+                    {
+                        var isSelected = Model.DepartmentId == department.Id ? "selected" : "";
+                        <option value="@department.Id" selected="@isSelected">@department.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="DepartmentId" class="text-danger"></span>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="form-group mt-3">
+                <input type="submit" value="Create" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
