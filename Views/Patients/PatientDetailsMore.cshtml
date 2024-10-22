@@ -1,0 +1,34 @@
+﻿@model Hospital_Managment_System.Models.Patient
+
+<h1 class="text-primary">My Details</h1>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Patient Information</h5>
+        <p><strong>Full Name:</strong> @Model.FirstName @Model.LastName</p>
+        <p><strong>Email:</strong> @Model.Email</p>
+        <p><strong>Phone:</strong> @Model.PhoneNumber</p>
+        <p><strong>Date of Birth:</strong> @(Model.DateOfBirth?.ToShortDateString())</p>
+        <p><strong>Address:</strong> @Model.Address</p>
+
+        @if (Model.PrimaryDoctor != null)
+        {
+            <div class="mt-4">
+                <h5 class="text-success">Primary Doctor</h5>
+                <p><strong>Doctor Name:</strong> @Model.PrimaryDoctor.FirstName @Model.PrimaryDoctor.LastName</p>
+                <p><strong>Specialization:</strong> @Model.PrimaryDoctor.Specialization</p>
+                <p><strong>Department:</strong> @Model.PrimaryDoctor.Department.Name</p>
+                <!-- Button to view doctor's details -->
+                <a asp-controller="Doctors" asp-action="Details" asp-route-id="@Model.PrimaryDoctor.Id" class="btn btn-info mt-2">My Doctor</a>
+            </div>
+        }
+        else
+        {
+            <p class="text-danger mt-4"><strong>You don't have a primary doctor assigned.</strong></p>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+}

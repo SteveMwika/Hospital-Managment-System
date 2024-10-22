@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Hospital_Managment_System.Models
 {
@@ -8,12 +7,12 @@ namespace Hospital_Managment_System.Models
         [Key]
         public int Id { get; set; }
 
-        [ForeignKey("AppointmentID")]
-        public int AppointmentID { get; set; }
+        [Required]
+        public int AppointmentId { get; set; }
         public Appointment Appointment { get; set; }
 
-        [ForeignKey("MedicineID")]
-        public int MedicineID { get; set; }
+        [Required]
+        public int MedicineId { get; set; }
         public Medicine Medicine { get; set; }
 
         [Required]
@@ -27,6 +26,5 @@ namespace Hospital_Managment_System.Models
         [Required]
         public int PatientId { get; set; }
         public Patient Patient { get; set; }
-
     }
 }

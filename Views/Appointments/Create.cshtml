@@ -1,0 +1,82 @@
+﻿@using System.Security.Claims
+@model Hospital_Managment_System.Models.Appointment
+
+@{
+    ViewData["Title"] = "Create Appointment";
+}
+
+<h1>Create Appointment</h1>
+
+<h4>Appointment</h4>
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            @if (User.IsInRole("Doctor"))
+            {
+                <div class="form-group">
+                    <label asp-for="PatientId" class="control-label"></label>
+                    <select asp-for="PatientId" class="form-control" asp-items="ViewBag.PatientId">
+                        <option value="">-- Select Patient --</option>
+                    </select>
+                    <span asp-validation-for="PatientId" class="text-danger"></span>
+                </div>
+            }
+
+            <div class="form-group">
+                <label asp-for="AppointmentDate" class="control-label"></label>
+                <input asp-for="AppointmentDate" class="form-control" />
+                <span asp-validation-for="AppointmentDate" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="AppointmentStatus" class="control-label"></label>
+                <select asp-for="AppointmentStatus" class="form-control" asp-items="ViewBag.AppointmentStatus">
+                    <option value="">-- Select Status --</option>
+                </select>
+                <span asp-validation-for="AppointmentStatus" class="text-danger"></span>
+            </div>
+
+            @* Automatically generated BillAmount, so it is hidden *@
+            <input type="hidden" asp-for="BillAmount" />
+
+            <div class="form-group">
+                <label asp-for="FeedbackStatus" class="control-label"></label>
+                <select asp-for="FeedbackStatus" class="form-control" asp-items="ViewBag.FeedbackStatus">
+                    <option value="">-- Select Feedback Status --</option>
+                </select>
+                <span asp-validation-for="FeedbackStatus" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="DoctorNotification" class="control-label"></label>
+                <input asp-for="DoctorNotification" class="form-control" />
+                <span asp-validation-for="DoctorNotification" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="PatientNotification" class="control-label"></label>
+                <input asp-for="PatientNotification" class="form-control" />
+                <span asp-validation-for="PatientNotification" class="text-danger"></span>
+            </div>
+
+            @if (User.IsInRole("Doctor"))
+            {
+                <input type="hidden" asp-for="Doctors" value="@User.FindFirstValue(ClaimTypes.NameIdentifier)" />
+            }
+
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

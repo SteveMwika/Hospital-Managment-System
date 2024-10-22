@@ -1,6 +1,7 @@
 ﻿using Hospital_Managment_System.Enums;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Hospital_Managment_System.Models
 {
@@ -10,30 +11,26 @@ namespace Hospital_Managment_System.Models
         public int Id { get; set; }
 
         [Required]
-        [ForeignKey("PatientId")]
         public int PatientId { get; set; }
 
         [Required]
-        public required Patient Patient { get; set; } // Required navigation property
+        public Patient Patient { get; set; } // Required navigation property
 
         [Required]
-        public required DateTime AppointmentDate { get; set; }
+        [DataType(DataType.DateTime)]
+        public DateTime AppointmentDate { get; set; }
 
         [Required]
-        public required AppointmentStatus AppointmentStatus { get; set; }
+        public AppointmentStatus AppointmentStatus { get; set; }
 
         public float BillAmount { get; set; }
 
-        [Required]
-        [StringLength(10)]
-        public required string BillStatus { get; set; }
+        // Removed BillStatus string property
 
         public int DoctorNotification { get; set; }
         public int PatientNotification { get; set; }
 
         public FeedbackStatus FeedbackStatus { get; set; }
-
-
 
         // Navigation Properties
         public ICollection<Prescription> Prescriptions { get; set; } = new List<Prescription>();

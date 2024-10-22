@@ -1,40 +1,132 @@
-﻿@model Hospital_Managment_System.Models.Doctor
+﻿@model IEnumerable<Hospital_Managment_System.Models.Doctor>
 
 @{
-    ViewData["Title"] = "Doctor Details";
+    ViewData["Title"] = "Doctors";
 }
 
-<h1>Doctor Details</h1>
+<h1 class="text-center mb-4">Doctors Directory</h1>
 
-<div>
-    <dl class="row">
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.FirstName)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.FirstName)
-        </dd>
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.LastName)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.LastName)
-        </dd>
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.Specialization)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.Specialization)
-        </dd>
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.Department.Name)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.Department.Name)
-        </dd>
-    </dl>
+<!-- Search and Filter Bar -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <form id="searchForm" method="get" asp-action="Index">
+            <div class="input-group shadow-sm">
+                <input type="text" id="doctorSearch" name="searchQuery" class="form-control" placeholder="Search doctors by name..." value="@Context.Request.Query["searchQuery"]" aria-label="Search doctors">
+                <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Search</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-md-6">
+        <form method="get" asp-action="Index">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-6">
+                    <select name="departmentId" class="form-select shadow-sm">
+                        <option value="">-- Filter by Department --</option>
+                        @foreach (var dept in (IEnumerable<SelectListItem>)ViewData["Departments"])
+                        {
+                            <option value="@dept.Value" selected="@((string)ViewBag.DepartmentId == dept.Value)">@dept.Text</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <select name="specialization" class="form-select shadow-sm">
+                        <option value="">-- Filter by Specialization --</option>
+                        @foreach (var spec in (IEnumerable<SelectListItem>)ViewData["Specializations"])
+                        {
+                            <option value="@spec.Value" selected="@((string)ViewBag.Specialization == spec.Value)">@spec.Text</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Checkbox for available primary doctor -->
+                <div class="col-md-12 mt-2">
+                    <div class="form-check">
+                        <input type="checkbox" name="availableForPrimary" class="form-check-input shadow-sm" @(Context.Request.Query["availableForPrimary"] == "on" ? "checked" : "")>
+                        <label class="form-check-label">Available to be Primary Doctor</label>
+                    </div>
+                </div>
+
+                <div class="col-md-12 text-end mt-2">
+                    <button class="btn btn-secondary shadow-sm" type="submit"><i class="bi bi-funnel"></i> Apply Filters</button>
+                </div>
+            </div>
+        </form>
+    </div>
 </div>
 
-<div>
-    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+<!-- Display Doctors in a card layout -->
+<div id="doctor-cards" class="row row-cols-1 row-cols-md-4 g-4">
+    @foreach (var doctor in Model)
+    {
+        <div class="col">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">@doctor.FirstName @doctor.LastName</h5>
+                    <p class="card-text">
+                        <strong>Specialization:</strong> @doctor.Specialization<br />
+                        <strong>Department:</strong> @doctor.Department.Name
+                    </p>
+                    <a asp-action="Details" asp-route-id="@doctor.Id" class="btn btn-outline-primary btn-sm w-100">View Details</a>
+
+                    <!-- Display button to set primary doctor if the user is a patient -->
+                    @if (User.IsInRole("Patient"))
+                    {
+                        <a asp-action="SetPrimaryDoctor" asp-route-doctorId="@doctor.Id" class="btn btn-outline-success btn-sm w-100 mt-2">Set as Primary Doctor</a>
+                    }
+                </div>
+            </div>
+        </div>
+    }
 </div>
+
+<!-- Pagination -->
+<nav aria-label="Page navigation" class="mt-4">
+    <ul class="pagination justify-content-center">
+        <li class="page-item @(ViewBag.CurrentPage == 1 ? "disabled" : "")">
+            <a class="page-link" asp-route-page="@(ViewBag.CurrentPage - 1)" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+            </a>
+        </li>
+
+        @for (int i = 1; i <= ViewBag.TotalPages; i++)
+        {
+            <li class="page-item @(ViewBag.CurrentPage == i ? "active" : "")">
+                <a class="page-link" asp-route-page="@i">@i</a>
+            </li>
+        }
+
+        <li class="page-item @(ViewBag.CurrentPage == ViewBag.TotalPages ? "disabled" : "")">
+            <a class="page-link" asp-route-page="@(ViewBag.CurrentPage + 1)" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+            </a>
+        </li>
+    </ul>
+</nav>
+
+@section Scripts {
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script>
+        $(document).ready(function () {
+            // Autocomplete for doctor search
+            $('#doctorSearch').autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: '@Url.Action("GetDoctorSuggestions", "Doctors")',
+                        dataType: 'json',
+                        data: { term: request.term },
+                        success: function (data) {
+                            response(data);
+                        }
+                    });
+                },
+                minLength: 2, // Trigger after two characters
+                select: function (event, ui) {
+                    $('#doctorSearch').val(ui.item.value); // Set value on selection
+                    $('#searchForm').submit(); // Submit form on select
+                }
+            });
+        });
+    </script>
+}

@@ -1,0 +1,38 @@
+﻿@using System.Security.Claims
+@model Hospital_Managment_System.Models.Prescription
+
+@{
+    ViewData["Title"] = "Prescription Details";
+}
+
+<h1>Prescription Details</h1>
+
+<div>
+    <h4>Prescription</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">Medicine</dt>
+        <dd class="col-sm-10">@Model.Medicine.Name</dd>
+
+        <dt class="col-sm-2">Patient</dt>
+        <dd class="col-sm-10">@Model.Patient.FirstName @Model.Patient.LastName</dd>
+
+        <dt class="col-sm-2">Doctor</dt>
+        <dd class="col-sm-10">@Model.Doctor.FirstName @Model.Doctor.LastName</dd>
+
+        <dt class="col-sm-2">Instructions</dt>
+        <dd class="col-sm-10">@Model.Instructions</dd>
+    </dl>
+</div>
+
+<div>
+    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+    @if (User.IsInRole("Admin") || (User.IsInRole("Doctor") && Model.Doctor.UserId == User.FindFirstValue(ClaimTypes.NameIdentifier)))
+    {
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit</a>
+    }
+    @if (User.IsInRole("Admin"))
+    {
+            <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">Delete</a>
+    }
+</div>

@@ -5,9 +5,11 @@ using System.Threading.Tasks;
 using Hospital_Managment_System.Data;
 using Hospital_Managment_System.Enums;
 using Hospital_Managment_System.Models;
+using Hospital_Managment_System.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 
 namespace Hospital_Managment_System.Controllers
@@ -24,26 +26,82 @@ namespace Hospital_Managment_System.Controllers
             _userManager = userManager;
         }
 
-        // GET: Doctor
+        //GET: Doctors : Index
         [Authorize(Roles = "Admin,Doctor,Patient")]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string searchQuery, string departmentId, string specialization, bool availableForPrimary = false, int page = 1)
         {
-            var doctors = await _context.Doctors
-                .Include(d => d.Department)
+            int pageSize = 8; // Define page size for pagination
+
+            // Get all doctors
+            var doctorsQuery = _context.Doctors.Include(d => d.Department).AsNoTracking();
+
+            // If there's a search query, filter the doctors by name
+            if (!string.IsNullOrWhiteSpace(searchQuery))
+            {
+                doctorsQuery = doctorsQuery.Where(d =>
+                    (d.FirstName + " " + d.LastName).Contains(searchQuery) ||
+                    d.FirstName.Contains(searchQuery) ||
+                    d.LastName.Contains(searchQuery));
+            }
+
+            // Filter by department if selected
+            if (!string.IsNullOrEmpty(departmentId))
+            {
+                doctorsQuery = doctorsQuery.Where(d => d.DepartmentId == int.Parse(departmentId));
+            }
+
+            // Filter by specialization if selected
+            if (!string.IsNullOrEmpty(specialization))
+            {
+                doctorsQuery = doctorsQuery.Where(d => d.Specialization.ToString() == specialization);
+            }
+
+            // Filter for doctors available to be primary doctor
+            if (availableForPrimary)
+            {
+                doctorsQuery = doctorsQuery.Where(d => d.Patients.Count < 20);
+            }
+
+            // Order doctors alphabetically by first name and paginate results
+            var doctorsPaged = await doctorsQuery
+                .OrderBy(d => d.FirstName)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            // Create a dictionary of Doctor IDs to Department Names
-            var doctorDepartmentNames = doctors.ToDictionary(
-                doc => doc.Id,
-                doc => doc.Department?.Name ?? "No Department"
-            );
+            // Pass data to view
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = (int)Math.Ceiling(doctorsQuery.Count() / (double)pageSize);
 
-            ViewBag.DoctorDepartmentNames = doctorDepartmentNames;
+            // Populate ViewData for dropdowns, sorted alphabetically
+            ViewData["Departments"] = new SelectList(
+                await _context.Departments.OrderBy(d => d.Name).ToListAsync(),
+                "Id", "Name");
 
-            return View(doctors);
+            ViewData["Specializations"] = new SelectList(
+                Enum.GetValues(typeof(DoctorSpecialization))
+                .Cast<DoctorSpecialization>()
+                .OrderBy(s => s.ToString())
+                .Select(s => new { Value = (int)s, Text = s.ToString() }),
+                "Value", "Text");
+
+            return View("PatientLimitedDetails", doctorsPaged);
         }
 
-        // GET: Doctor/Details/5
+        // API to provide autocomplete suggestions
+        [HttpGet]
+        [Authorize(Roles = "Admin,Doctor,Patient")]
+        public async Task<IActionResult> GetDoctorSuggestions(string term)
+        {
+            var suggestions = await _context.Doctors
+                .Where(d => d.FirstName.Contains(term) || d.LastName.Contains(term))
+                .Select(d => $"{d.FirstName} {d.LastName}")
+                .ToListAsync();
+
+            return Json(suggestions);
+        }
+
+        // GET: Doctors/Details/5
         [Authorize(Roles = "Admin,Doctor,Patient")]
         public async Task<IActionResult> Details(int? id)
         {
@@ -55,18 +113,17 @@ namespace Hospital_Managment_System.Controllers
             var doctor = await _context.Doctors
                 .Include(d => d.Department)
                 .FirstOrDefaultAsync(m => m.Id == id);
-
             if (doctor == null)
             {
                 return NotFound();
             }
 
+            // Authorization logic for Doctors (excluding Admins)
             if (User.IsInRole("Doctor") && !User.IsInRole("Admin"))
             {
                 var currentUser = await _userManager.GetUserAsync(User);
                 if (doctor.UserId != currentUser.Id)
                 {
-                    // Doctors can view all Doctors' status but not their details
                     var statusOnly = new Doctor
                     {
                         Id = doctor.Id,
@@ -77,94 +134,115 @@ namespace Hospital_Managment_System.Controllers
                         Department = doctor.Department,
                         Status = doctor.Status,
                         Email = doctor.Email,
-                        Phone = doctor.Phone ?? " "  
+                        Phone = doctor.Phone ?? "N/A"
                     };
-                    //return View("StatusOnlyDetails", statusOnly);
-                    return View("StatusOnlyDetails",statusOnly);
+                    return View("StatusOnlyDetails", statusOnly);
                 }
             }
 
-            if (User.IsInRole("Patient") && !User.IsInRole("Admin"))
+            // Logic for patients (or admins) to view and set primary doctor
+            if (User.IsInRole("Patient"))
             {
-                // Patients can view only limited information
-                var limitedInfo = new Doctor
+                // Get current patient by user ID
+                var currentUser = await _userManager.GetUserAsync(User);
+                var currentPatient = await _context.Patients.FirstOrDefaultAsync(p => p.UserId == currentUser.Id);
+
+                if (currentPatient != null)
                 {
-                    FirstName = doctor.FirstName,
-                    LastName = doctor.LastName,
-                    Specialization = doctor.Specialization,
-                    Department = doctor.Department,
-                    Email = " ", // Required member
-                    Phone = " "  // Required member
-                };
-                return View("PatientLimitedDetails", limitedInfo);
+                    bool hasPrimaryDoctor = currentPatient.PrimaryDoctorId != null;
+                    bool isCurrentPrimaryDoctor = currentPatient.PrimaryDoctorId == doctor.Id;
+
+                    ViewBag.HasPrimaryDoctor = hasPrimaryDoctor;
+                    ViewBag.IsCurrentPrimaryDoctor = isCurrentPrimaryDoctor;
+
+                    // Return view with limited doctor information for the patient
+                    return View("PatientDoctorDetailsView", doctor);
+                }
+
+                // If the user is a patient but is not found in the Patients table
+                return Unauthorized();
             }
 
+            // Admin can view all details
             return View(doctor);
         }
 
-        // GET: Doctor/Create
+        // GET: Doctors/Create
         [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
-            ViewBag.Departments = _context.Departments.ToList();
-            // Create Doctor entity
-            var doctor = new Doctor
-            {
-                FirstName = string.Empty,
-                LastName = string.Empty,
-                BirthDate = DateTime.MinValue, // Fixed the type to DateTime
-                Gender = Gender.Other,
-                Email = string.Empty,
-                Phone = string.Empty,
-                Specialization = DoctorSpecialization.Cardiologist, // Assuming a default value
-                Status = DoctorStatus.Active, // Assuming a default value
-                DepartmentId = 0, // Assuming a default value
-                UserId = string.Empty,
-            };
-            return View(doctor); // Ensure a return statement is present
+            // Populate Departments dropdown
+            ViewData["DepartmentId"] = new SelectList(_context.Departments, "Id", "Name");
+
+            // Populate Gender enum
+            ViewData["Gender"] = new SelectList(Enum.GetValues(typeof(Gender)).Cast<Gender>());
+
+            // Populate DoctorSpecialization enum
+            ViewData["Specialization"] = new SelectList(Enum.GetValues(typeof(DoctorSpecialization)).Cast<DoctorSpecialization>());
+
+            // Populate DoctorStatus enum
+            ViewData["Status"] = new SelectList(Enum.GetValues(typeof(DoctorStatus)).Cast<DoctorStatus>());
+
+            return View();
         }
 
-
-        // POST: Doctor/Create
+        // POST: Doctors/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Create([Bind("Id,FirstName,LastName,BirthDate,Gender,Email,Phone,Specialization,Status,DepartmentId")] Doctor doctor)
+        public async Task<IActionResult> Create(DoctorViewModel model)
         {
             if (!ModelState.IsValid)
             {
-                // Create a new IdentityUser for the doctor
+                // Create a new IdentityUser for the Doctor
                 var user = new IdentityUser
                 {
-                    UserName = doctor.Email,
-                    Email = doctor.Email,
+                    UserName = model.Email,
+                    Email = model.Email,
                     EmailConfirmed = true
                 };
-                var result = await _userManager.CreateAsync(user, "Doctor@123"); // Assign a secure default password or handle appropriately
 
+                var result = await _userManager.CreateAsync(user, model.Password);
                 if (result.Succeeded)
                 {
-                    // Assign Doctor role
-                    await _userManager.AddToRoleAsync(user, "Doctor");
+                    // Assign the Doctor role
+                    await _userManager.AddToRoleAsync(user, UserRoles.Doctor.ToString());
 
-                    // Associate the doctor with the user
-                    doctor.UserId = user.Id;
-                    doctor.User = user;
+                    // Create a corresponding Doctor record
+                    var doctor = new Doctor
+                    {
+                        FirstName = model.FirstName,
+                        LastName = model.LastName,
+                        BirthDate = model.BirthDate,
+                        Gender = model.Gender,
+                        Email = model.Email,
+                        Phone = model.Phone,
+                        Specialization = model.Specialization,
+                        Status = model.Status,
+                        DepartmentId = model.DepartmentId,
+                        UserId = user.Id
+                    };
 
-                    _context.Add(doctor);
+                    _context.Doctors.Add(doctor);
                     await _context.SaveChangesAsync();
+
                     return RedirectToAction(nameof(Index));
                 }
-                else
+
+                // Add errors to ModelState
+                foreach (var error in result.Errors)
                 {
-                    foreach (var error in result.Errors)
-                    {
-                        ModelState.AddModelError(string.Empty, error.Description);
-                    }
+                    ModelState.AddModelError(string.Empty, error.Description);
                 }
             }
-            ViewBag.Departments = _context.Departments.ToList();
-            return View(doctor);
+
+            // If we reach here, something failed; repopulate dropdowns
+            ViewData["DepartmentId"] = new SelectList(_context.Departments, "Id", "Name", model.DepartmentId);
+            ViewData["Gender"] = new SelectList(Enum.GetValues(typeof(Gender)).Cast<Gender>(), model.Gender);
+            ViewData["Specialization"] = new SelectList(Enum.GetValues(typeof(DoctorSpecialization)).Cast<DoctorSpecialization>(), model.Specialization);
+            ViewData["Status"] = new SelectList(Enum.GetValues(typeof(DoctorStatus)).Cast<DoctorStatus>(), model.Status);
+
+            return View(model);
         }
 
         // GET: Doctors/Edit/5
@@ -188,20 +266,39 @@ namespace Hospital_Managment_System.Controllers
                 var currentUser = await _userManager.GetUserAsync(User);
                 if (doctor.UserId != currentUser.Id)
                 {
-                    return Forbid();
+                    return Forbid(); // Prevent the doctor from editing someone else's profile
                 }
             }
 
-            ViewBag.Departments = _context.Departments.ToList();
-            return View(doctor);
+            // Populate the ViewModel
+            var model = new DoctorViewModel
+            {
+                Id = doctor.Id,
+                FirstName = doctor.FirstName,
+                LastName = doctor.LastName,
+                BirthDate = doctor.BirthDate,
+                Gender = doctor.Gender,
+                Email = doctor.Email,
+                Phone = doctor.Phone,
+                Specialization = doctor.Specialization,
+                Status = doctor.Status,
+                DepartmentId = doctor.DepartmentId,
+                IsEditMode = true // Set to true when editing
+            };
+
+            // Populate dropdown lists including Department
+            PopulateDropdowns(doctor.DepartmentId, doctor.Gender, doctor.Specialization, doctor.Status);
+
+            return View(model);
         }
 
+        // POST: Doctors/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,Doctor")]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,FirstName,LastName,BirthDate,Gender,Email,Phone,Specialization,Status,DepartmentId")] Doctor doctor)
+        public async Task<IActionResult> Edit(int id, DoctorViewModel model)
         {
-            if (id != doctor.Id)
+            if (id != model.Id)
             {
                 return NotFound();
             }
@@ -213,7 +310,7 @@ namespace Hospital_Managment_System.Controllers
                 var existingDoctor = await _context.Doctors.AsNoTracking().FirstOrDefaultAsync(d => d.Id == id);
                 if (existingDoctor == null || existingDoctor.UserId != currentUser.Id)
                 {
-                    return Forbid();
+                    return Forbid(); // Prevent unauthorized modification
                 }
             }
 
@@ -221,35 +318,50 @@ namespace Hospital_Managment_System.Controllers
             {
                 try
                 {
-                    var existingDoctor = await _context.Doctors.AsNoTracking().FirstOrDefaultAsync(d => d.Id == id);
-                    if (existingDoctor.Email != doctor.Email)
+                    var existingDoctor = await _context.Doctors.FindAsync(id);
+                    if (existingDoctor == null)
                     {
-                        var user = await _userManager.FindByIdAsync(existingDoctor.UserId);
-                        if (user != null)
+                        return NotFound();
+                    }
+
+                    // Update the doctor's basic info
+                    existingDoctor.FirstName = model.FirstName;
+                    existingDoctor.LastName = model.LastName;
+                    existingDoctor.BirthDate = model.BirthDate;
+                    existingDoctor.Gender = model.Gender;
+                    existingDoctor.Email = model.Email;
+                    existingDoctor.Phone = model.Phone;
+                    existingDoctor.Specialization = model.Specialization;
+                    existingDoctor.Status = model.Status;
+                    existingDoctor.DepartmentId = model.DepartmentId;
+
+                    // Update the email in IdentityUser if it has changed
+                    var user = await _userManager.FindByIdAsync(existingDoctor.UserId);
+                    if (user != null && user.Email != model.Email)
+                    {
+                        user.Email = model.Email;
+                        user.UserName = model.Email;
+                        var result = await _userManager.UpdateAsync(user);
+                        if (!result.Succeeded)
                         {
-                            user.Email = doctor.Email;
-                            user.UserName = doctor.Email; // If using Email as Username
-                            var result = await _userManager.UpdateAsync(user);
-                            if (!result.Succeeded)
+                            foreach (var error in result.Errors)
                             {
-                                foreach (var error in result.Errors)
-                                {
-                                    ModelState.AddModelError("", error.Description);
-                                }
-                                ViewBag.Departments = _context.Departments.ToList();
-                                return View(doctor);
+                                ModelState.AddModelError("", error.Description);
                             }
+
+                            // Repopulate dropdown lists and return the view
+                            PopulateDropdowns(model.DepartmentId, model.Gender, model.Specialization, model.Status);
+                            return View(model);
                         }
                     }
 
-                    doctor.UserId = existingDoctor.UserId;
-                    _context.Update(doctor);
+                    _context.Update(existingDoctor);
                     await _context.SaveChangesAsync();
                     return RedirectToAction(nameof(Index));
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!DoctorExists(doctor.Id))
+                    if (!DoctorExists(model.Id))
                     {
                         return NotFound();
                     }
@@ -259,11 +371,27 @@ namespace Hospital_Managment_System.Controllers
                     }
                 }
             }
-            ViewBag.Departments = _context.Departments.ToList();
-            return View(doctor);
+
+            // Repopulate dropdown lists in case of validation errors
+            PopulateDropdowns(model.DepartmentId, model.Gender, model.Specialization, model.Status);
+            return View(model);
         }
 
-        // GET: Doctor/Delete/5
+        private bool DoctorExists(int id)
+        {
+            return _context.Doctors.Any(e => e.Id == id);
+        }
+
+        // Method to populate the dropdown lists including Department
+        private void PopulateDropdowns(int departmentId, Gender gender, DoctorSpecialization specialization, DoctorStatus status)
+        {
+            ViewBag.Departments = new SelectList(_context.Departments, "Id", "Name", departmentId);
+            ViewBag.Gender = new SelectList(Enum.GetValues(typeof(Gender)).Cast<Gender>(), gender);
+            ViewBag.Specialization = new SelectList(Enum.GetValues(typeof(DoctorSpecialization)).Cast<DoctorSpecialization>(), specialization);
+            ViewBag.Status = new SelectList(Enum.GetValues(typeof(DoctorStatus)).Cast<DoctorStatus>(), status);
+        }
+
+        // GET: Doctors/Delete/5
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int? id)
         {
@@ -280,11 +408,10 @@ namespace Hospital_Managment_System.Controllers
                 return NotFound();
             }
 
-            ViewBag.DepartmentName = doctor.Department?.Name; // Pass the department name to the view
             return View(doctor);
         }
 
-        // POST: Doctor/Delete/5
+        // POST: Doctors/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
@@ -327,10 +454,30 @@ namespace Hospital_Managment_System.Controllers
             return View("Details", doctor);
         }
 
-        private bool DoctorExists(int id)
+        [Authorize(Roles = "Patient")]
+        public async Task<IActionResult> SetPrimaryDoctor(int doctorId)
         {
-            return _context.Doctors.Any(e => e.Id == id);
+            var currentUser = await _userManager.GetUserAsync(User);
+            var patient = await _context.Patients.FirstOrDefaultAsync(p => p.UserId == currentUser.Id);
+
+            if (patient == null || patient.PrimaryDoctorId != null)
+            {
+                return BadRequest("You already have a primary doctor or an error occurred.");
+            }
+
+            var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.Id == doctorId && d.Patients.Count < 20);
+            if (doctor == null)
+            {
+                return NotFound("Doctor not available.");
+            }
+
+            patient.PrimaryDoctorId = doctorId;
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("Index", "Doctors");
         }
+
+
 
     }
 }

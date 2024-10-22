@@ -12,7 +12,9 @@
         Approved = 1,
         Pending = 2,
         Completed = 3,
-        Rejected = 4
+        DrCancelled = 4,
+        PatientCancelled = 5,
+        Scheduled = 6
     }
 
     public enum BillStatus
@@ -104,5 +106,4 @@
         Female = 2,
         Other = 3
     }
-
 }

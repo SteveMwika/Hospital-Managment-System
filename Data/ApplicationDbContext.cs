@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-
 namespace Hospital_Managment_System.Data
 {
     public class ApplicationDbContext : IdentityDbContext<IdentityUser>
@@ -13,6 +12,7 @@ namespace Hospital_Managment_System.Data
             : base(options) // Ensures proper initialization
         {
         }
+
         // DbSet properties
         public DbSet<Patient> Patients { get; set; }
         public DbSet<Doctor> Doctors { get; set; }
@@ -54,7 +54,7 @@ namespace Hospital_Managment_System.Data
 
                 entity.HasMany(m => m.Prescriptions)
                       .WithOne(p => p.Medicine)
-                      .HasForeignKey(p => p.MedicineID)
+                      .HasForeignKey(p => p.MedicineId)
                       .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasMany(m => m.InventoryLogs)
@@ -79,9 +79,19 @@ namespace Hospital_Managment_System.Data
                 entity.Property(d => d.Phone)
                       .IsRequired()
                       .HasMaxLength(15);
-
                 entity.Property(d => d.BirthDate)
                       .IsRequired();
+
+                // Enum Conversions
+                entity.Property(d => d.Gender)
+                      .IsRequired()
+                      .HasConversion<int>();
+                entity.Property(d => d.Specialization)
+                      .IsRequired()
+                      .HasConversion<int>();
+                entity.Property(d => d.Status)
+                      .IsRequired()
+                      .HasConversion<int>();
 
                 // Relationships with Department
                 entity.HasOne(d => d.Department)
@@ -95,13 +105,18 @@ namespace Hospital_Managment_System.Data
                       .HasForeignKey(p => p.PrimaryDoctorId)
                       .OnDelete(DeleteBehavior.SetNull);
 
-                // Many-to-Many with Appointments
+                // Many-to-Many with Appointments using skip navigation
                 entity.HasMany(d => d.Appointments)
                       .WithMany(a => a.Doctors)
                       .UsingEntity<Dictionary<string, object>>(
                           "AppointmentDoctor",
-                          ad => ad.HasOne<Appointment>().WithMany().HasForeignKey("AppointmentId"),
-                          ad => ad.HasOne<Doctor>().WithMany().HasForeignKey("DoctorId"));
+                          ad => ad.HasOne<Appointment>().WithMany().HasForeignKey("AppointmentId").OnDelete(DeleteBehavior.Cascade),
+                          ad => ad.HasOne<Doctor>().WithMany().HasForeignKey("DoctorId").OnDelete(DeleteBehavior.Cascade),
+                          ad =>
+                          {
+                              ad.HasKey("DoctorId", "AppointmentId");
+                              ad.ToTable("AppointmentDoctor");
+                          });
 
                 // Relationship with IdentityUser
                 entity.HasOne(d => d.User)
@@ -133,6 +148,10 @@ namespace Hospital_Managment_System.Data
                       .IsRequired()
                       .HasMaxLength(15);
 
+                // Enum Conversion
+                entity.Property(p => p.Gender)
+                      .HasConversion<int>();
+
                 // Relationships with Appointments
                 entity.HasMany(p => p.Appointments)
                       .WithOne(a => a.Patient)
@@ -163,9 +182,7 @@ namespace Hospital_Managment_System.Data
                       .HasConversion<int>();
                 entity.Property(a => a.BillAmount)
                       .HasColumnType("float");
-                entity.Property(a => a.BillStatus)
-                      .IsRequired()
-                      .HasMaxLength(10);
+                // Removed BillStatus string property
                 entity.Property(a => a.DoctorNotification)
                       .IsRequired();
                 entity.Property(a => a.PatientNotification)
@@ -179,14 +196,6 @@ namespace Hospital_Managment_System.Data
                       .HasForeignKey(a => a.PatientId)
                       .OnDelete(DeleteBehavior.Cascade);
 
-                // Many-to-Many with Doctors
-                entity.HasMany(a => a.Doctors)
-                      .WithMany(d => d.Appointments)
-                      .UsingEntity<Dictionary<string, object>>(
-                          "AppointmentDoctor",
-                          ad => ad.HasOne<Doctor>().WithMany().HasForeignKey("DoctorId"),
-                          ad => ad.HasOne<Appointment>().WithMany().HasForeignKey("AppointmentId"));
-
                 // Relationship with Billing
                 entity.HasOne(a => a.Billing)
                       .WithOne(b => b.Appointment)
@@ -196,15 +205,19 @@ namespace Hospital_Managment_System.Data
                 // Relationships with Prescriptions and LabTests
                 entity.HasMany(a => a.Prescriptions)
                       .WithOne(p => p.Appointment)
-                      .HasForeignKey(p => p.AppointmentID)
+                      .HasForeignKey(p => p.AppointmentId)
                       .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasMany(a => a.LabTests)
                       .WithOne(l => l.Appointment)
-                      .HasForeignKey(l => l.AppointmentID)
+                      .HasForeignKey(l => l.AppointmentId)
                       .OnDelete(DeleteBehavior.Cascade);
+
+                // Concurrency Token
+                // Removed per user instruction
             });
 
+            // Configure Billing Entity
             modelBuilder.Entity<Billing>(entity =>
             {
                 entity.HasKey(b => b.Id);
@@ -215,8 +228,11 @@ namespace Hospital_Managment_System.Data
                       .HasConversion<int>();
                 entity.Property(b => b.BillingDate)
                       .IsRequired();
+
+                // Relationship with Appointment is configured in Appointment
             });
 
+            // Configure Prescription Entity
             modelBuilder.Entity<Prescription>(entity =>
             {
                 entity.HasKey(p => p.Id);
@@ -224,15 +240,15 @@ namespace Hospital_Managment_System.Data
                       .IsRequired()
                       .HasMaxLength(200);
 
-                // Configure relationships
+                // Relationships
                 entity.HasOne(p => p.Appointment)
                       .WithMany(a => a.Prescriptions)
-                      .HasForeignKey(p => p.AppointmentID)
+                      .HasForeignKey(p => p.AppointmentId)
                       .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(p => p.Medicine)
                       .WithMany(m => m.Prescriptions)
-                      .HasForeignKey(p => p.MedicineID)
+                      .HasForeignKey(p => p.MedicineId)
                       .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(p => p.Doctor)
@@ -259,9 +275,14 @@ namespace Hospital_Managment_System.Data
                       .IsRequired();
                 entity.Property(l => l.IsCompleted)
                       .IsRequired();
+
+                entity.HasOne(l => l.Appointment)
+                      .WithMany(a => a.LabTests)
+                      .HasForeignKey(l => l.AppointmentId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // Configure MedicineInventoryLog Entity (update if necessary)
+            // Configure MedicineInventoryLog Entity
             modelBuilder.Entity<MedicineInventoryLog>(entity =>
             {
                 entity.HasKey(m => m.Id);

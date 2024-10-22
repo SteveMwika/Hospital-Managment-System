@@ -1,14 +1,20 @@
 ﻿// Data/SeedData.cs
+using Hospital_Managment_System.Data;
 using Hospital_Managment_System.Enums;
 using Hospital_Managment_System.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Hospital_Managment_System.Data
 {
     public static class SeedData
     {
+        // Predefined lists for generating sample data
         private static readonly List<string> maleFirstNames = new List<string>
         {
             "James", "John", "Robert", "Michael", "William", "David", "Richard", "Joseph", "Charles", "Thomas",
@@ -26,6 +32,7 @@ namespace Hospital_Managment_System.Data
             "Kathleen", "Amy", "Shirley", "Angela", "Helen", "Anna", "Brenda", "Pamela", "Nicole", "Samantha",
             "Katherine", "Emma", "Ruth", "Christine", "Catherine", "Debra", "Rachel", "Carolyn", "Janet", "Maria"
         };
+
         private static readonly List<string> lastNames = new List<string>
         {
             "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez",
@@ -72,7 +79,7 @@ namespace Hospital_Managment_System.Data
             // Obtain ApplicationDbContext instance
             using var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
 
-            // Ensure database is created
+            // Ensure database is created and apply migrations
             await context.Database.MigrateAsync();
 
             // Seed roles
@@ -83,9 +90,12 @@ namespace Hospital_Managment_System.Data
             await EnsureMedicinesAsync(context);
 
             // Seed users and associate them with doctors and patients
-            await EnsureAdminUserAsync(userManager);
+            await EnsureAdminUserAsync(userManager, context);
             await EnsureDoctorUsersAsync(userManager, context);
             await EnsurePatientUsersAsync(userManager, context);
+
+            // Seed appointments
+            await EnsureAppointmentsAsync(context);
         }
 
         private static async Task EnsureRolesAsync(RoleManager<IdentityRole> roleManager)
@@ -102,7 +112,7 @@ namespace Hospital_Managment_System.Data
             }
         }
 
-        private static async Task EnsureAdminUserAsync(UserManager<IdentityUser> userManager)
+        private static async Task EnsureAdminUserAsync(UserManager<IdentityUser> userManager, ApplicationDbContext context)
         {
             var adminEmail = "admin@hospital.com";
             var adminUser = await userManager.FindByEmailAsync(adminEmail);
@@ -121,10 +131,14 @@ namespace Hospital_Managment_System.Data
                 if (result.Succeeded)
                 {
                     await userManager.AddToRoleAsync(adminUser, "Admin");
+
+                    // Optionally, create an Admin profile if needed
                 }
                 else
                 {
-                    // Handle errors
+                    // Handle errors (logging, exceptions, etc.)
+                    var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                    throw new Exception($"Failed to create Admin user. Errors: {errors}");
                 }
             }
         }
@@ -196,51 +210,30 @@ namespace Hospital_Managment_System.Data
                 { DoctorSpecialization.OccupationalMedicine, "Specialized Medicine" }, // Assigned here
             };
 
-            var departments = context.Departments.ToList();
+            var departments = await context.Departments.ToListAsync();
             int totalDoctors = 40;
-            int specializationCount = Enum.GetValues(typeof(DoctorSpecialization)).Length;
             Random random = new Random();
 
             for (int i = 1; i <= totalDoctors; i++)
             {
                 var email = $"doctor{i}@hospital.com";
                 var user = await userManager.FindByEmailAsync(email);
-
                 if (user == null)
                 {
-                    user = new IdentityUser
-                    {
-                        UserName = email,
-                        Email = email,
-                        EmailConfirmed = true
-                    };
-
+                    user = new IdentityUser { UserName = email, Email = email, EmailConfirmed = true };
                     var result = await userManager.CreateAsync(user, $"DoctorPassword{i}!");
-
                     if (result.Succeeded)
                     {
                         await userManager.AddToRoleAsync(user, "Doctor");
 
-                        // Assign specialization and department
-                        var specialization = (DoctorSpecialization)(((i - 1) % specializationCount) + 1);
-                        var departmentName = specializationDepartmentMap.ContainsKey(specialization)
-                            ? specializationDepartmentMap[specialization]
-                            : "General Medicine";
-
+                        var specialization = (DoctorSpecialization)(((i - 1) % Enum.GetValues(typeof(DoctorSpecialization)).Length) + 1);
+                        var departmentName = specializationDepartmentMap.ContainsKey(specialization) ? specializationDepartmentMap[specialization] : "Internal Medicine";
                         var department = departments.FirstOrDefault(d => d.Name == departmentName) ?? departments.First();
 
-                        // Randomly assign gender
                         var gender = (Gender)(((i - 1) % Enum.GetValues(typeof(Gender)).Length) + 1);
-
-                        // Select first name based on gender
-                        string firstName = gender == Gender.Male
-                            ? maleFirstNames[random.Next(maleFirstNames.Count)]
-                            : femaleFirstNames[random.Next(femaleFirstNames.Count)];
-
-                        // Select a random last name
+                        string firstName = gender == Gender.Male ? maleFirstNames[random.Next(maleFirstNames.Count)] : femaleFirstNames[random.Next(femaleFirstNames.Count)];
                         string lastName = lastNames[random.Next(lastNames.Count)];
 
-                        // Create Doctor entity
                         var doctor = new Doctor
                         {
                             FirstName = firstName,
@@ -250,7 +243,7 @@ namespace Hospital_Managment_System.Data
                             Email = email,
                             Phone = $"555-01{i:D2}",
                             Specialization = specialization,
-                            Status = (DoctorStatus)(((i - 1) % Enum.GetValues(typeof(DoctorStatus)).Length) + 1),
+                            Status = DoctorStatus.Active,
                             DepartmentId = department.Id,
                             UserId = user.Id
                         };
@@ -263,7 +256,7 @@ namespace Hospital_Managment_System.Data
 
         private static async Task EnsurePatientUsersAsync(UserManager<IdentityUser> userManager, ApplicationDbContext context)
         {
-            var doctors = context.Doctors.ToList();
+            var doctors = await context.Doctors.ToListAsync();
             int totalPatients = 80;
             Random random = new Random();
 
@@ -284,7 +277,7 @@ namespace Hospital_Managment_System.Data
                         EmailConfirmed = true
                     };
 
-                    var result = await userManager.CreateAsync(user, $"PatientPassword{i}!");
+                    var result = await userManager.CreateAsync(user, $"PatientPassword{i}!"); // Secure password
 
                     if (result.Succeeded)
                     {
@@ -300,7 +293,7 @@ namespace Hospital_Managment_System.Data
                         // Increment the patient's count for the assigned doctor
                         doctorPatientCount[primaryDoctor.Id]++;
 
-                        // Randomly assign gender
+                        // Assign gender
                         var gender = (Gender)(((i - 1) % Enum.GetValues(typeof(Gender)).Length) + 1);
 
                         // Select first name based on gender
@@ -319,7 +312,7 @@ namespace Hospital_Managment_System.Data
                         {
                             FirstName = firstName,
                             LastName = lastName,
-                            DateOfBirth = new DateTime(1990 - i % 30, (i % 12) + 1, (i % 28) + 1),
+                            DateOfBirth = new DateTime(1990 - (i % 30), (i % 12) + 1, (i % 28) + 1),
                             Gender = gender,
                             PhoneNumber = $"555-020{i:D2}",
                             Email = email,
@@ -331,6 +324,12 @@ namespace Hospital_Managment_System.Data
                         };
                         context.Patients.Add(patient);
                         await context.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        // Log the errors (replace with your logging mechanism)
+                        var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                        throw new Exception($"Error creating Patient user {email}: {errors}");
                     }
                 }
             }
@@ -361,7 +360,7 @@ namespace Hospital_Managment_System.Data
 
         private static async Task EnsureMedicinesAsync(ApplicationDbContext context)
         {
-            if (!context.Medicines.Any())
+            if (!await context.Medicines.AnyAsync())
             {
                 var medicines = new List<Medicine>
                 {
@@ -393,6 +392,11 @@ namespace Hospital_Managment_System.Data
                 // Create initial inventory logs for medicines
                 var adminUser = await context.Users.FirstOrDefaultAsync(u => u.Email == "admin@hospital.com");
 
+                if (adminUser == null)
+                {
+                    throw new InvalidOperationException("Admin user must exist to create MedicineInventoryLogs.");
+                }
+
                 foreach (var medicine in medicines)
                 {
                     var inventoryLog = new MedicineInventoryLog
@@ -410,7 +414,48 @@ namespace Hospital_Managment_System.Data
                 }
 
                 await context.SaveChangesAsync();
+            }   
+        }
+
+        private static async Task EnsureAppointmentsAsync(ApplicationDbContext context)
+        {
+            if (!await context.Appointments.AnyAsync())
+            {
+                var random = new Random();
+                var patients = await context.Patients.Include(p => p.PrimaryDoctor).ToListAsync();
+                var doctors = await context.Doctors.ToListAsync();
+                var appointmentStatuses = Enum.GetValues(typeof(AppointmentStatus)).Cast<AppointmentStatus>().ToList();
+
+                for (int i = 1; i <= 50; i++)
+                {
+                    var patient = patients[random.Next(patients.Count)];
+                    var numberOfDoctors = random.Next(1, 4);
+                    var selectedDoctors = doctors.OrderBy(x => random.Next()).Take(numberOfDoctors).ToList();
+
+                    var appointment = new Appointment
+                    {
+                        AppointmentDate = DateTime.UtcNow.AddDays(random.Next(-30, 30)).AddHours(random.Next(8, 18)),
+                        AppointmentStatus = appointmentStatuses[random.Next(appointmentStatuses.Count)],
+                        BillAmount = (float)(random.NextDouble() * 500 + 50),
+                        DoctorNotification = random.Next(0, 2),
+                        PatientNotification = random.Next(0, 2),
+                        FeedbackStatus = (FeedbackStatus)random.Next(Enum.GetValues(typeof(FeedbackStatus)).Length),
+                        PatientId = patient.Id
+                    };
+
+                    foreach (var doctor in selectedDoctors)
+                    {
+                        appointment.Doctors.Add(doctor);
+                    }
+                    context.Appointments.Add(appointment);
+                }
+                await context.SaveChangesAsync();
             }
         }
     }
 }
+
+
+
+
+    

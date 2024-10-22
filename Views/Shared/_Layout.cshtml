@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Hospital_Managment_System</title>
+    <title>@ViewData["Title"] - Hospital Management System</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Hospital_Managment_System.styles.css" asp-append-version="true" />
@@ -12,7 +12,7 @@
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Hospital_Managment_System</a>
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Hospital Management System</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -25,78 +25,71 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
                         </li>
+
+                        <!-- Admin-specific Links -->
                         @if (User.IsInRole("Admin"))
                         {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Patients" asp-action="Index">Manage Patients</a>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Admin Menu
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                                    <li><a class="dropdown-item" asp-controller="Patients" asp-action="Index">Manage Patients</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Doctors" asp-action="Index">Manage Doctors</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Appointments" asp-action="Index">Manage Appointments</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Departments" asp-action="Index">Manage Departments</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Medicines" asp-action="Index">Manage Medicines</a></li>
+                                    <li><a class="dropdown-item" asp-controller="LabTests" asp-action="Index">Manage Lab Tests</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Prescriptions" asp-action="Index">Manage Prescriptions</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Billing" asp-action="Index">Manage Billing</a></li>
+                                </ul>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Doctors" asp-action="Index">Manage Doctors</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Appointments" asp-action="Index">Manage Appointments</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Departments" asp-action="Index">Manage Departments</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Medicines" asp-action="Index">Manage Medicines</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="LabTests" asp-action="Index">Manage Lab Tests</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Prescriptions" asp-action="Index">Manage Prescriptions</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Billing" asp-action="Index">Manage Billing</a>
-                            </li>
-                            <!-- Add other Admin-specific links here -->
                         }
+
+                        <!-- Doctor-specific Links -->
                         @if (User.IsInRole("Doctor"))
                         {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Appointments" asp-action="MyAppointments">My Appointments</a>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="doctorDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Doctor Menu
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="doctorDropdown">
+                                    <li><a class="dropdown-item" asp-controller="Appointments" asp-action="Index">My Appointments</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Patients" asp-action="Index">My Patients</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Prescriptions" asp-action="Index">Prescriptions</a></li>
+                                    <li><a class="dropdown-item" asp-controller="LabTests" asp-action="Index">Lab Tests</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Doctors" asp-action="MyProfile">My Profile</a></li>
+                                </ul>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Patients" asp-action="MyPatients">My Patients</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Prescriptions" asp-action="MyPrescriptions">My Prescriptions</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="LabTests" asp-action="Index">Lab Tests</a>
-                            </li>
+
                             <li class="nav-item">
                                 <a class="nav-link text-dark" asp-controller="Doctors" asp-action="Index">Doctors</a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Doctors" asp-action="MyProfile">My Profile</a>
-                            </li>
-                            
-                            <!-- Add other Doctor-specific links here -->
                         }
+
+                        <!-- Patient-specific Links -->
                         @if (User.IsInRole("Patient"))
                         {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Appointments" asp-action="MyAppointments">My Appointments</a>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="patientDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Patient Menu
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="patientDropdown">
+                                    <li><a class="dropdown-item" asp-controller="Appointments" asp-action="Index">My Appointments</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Prescriptions" asp-action="Details">My Prescriptions</a></li>
+                                    <li><a class="dropdown-item" asp-controller="LabTests" asp-action="MyLabTests">My Lab Tests</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Billing" asp-action="MyBilling">My Billing</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Patients" asp-action="MyDetails">My Details</a></li>
+                                </ul>
                             </li>
+
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Prescriptions" asp-action="MyPrescriptions">My Prescriptions</a>
+                                <a class="nav-link text-dark" asp-controller="Doctors" asp-action="Index">Doctors</a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="LabTests" asp-action="MyLabTests">My Lab Tests</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Billing" asp-action="MyBilling">My Billing</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Patients" asp-action="MyDetails">My Details</a>
-                            </li>
-                            <!-- Add other Patient-specific links here -->
+
                         }
                     </ul>
-                    <ul class="navbar-nav ml-auto">
+                    <ul class="navbar-nav ms-auto">
                         @if (User.Identity.IsAuthenticated)
                         {
                             <li class="nav-item">
@@ -130,7 +123,7 @@
 
     <footer class="border-top footer text-muted">
         <div class="container">
-            &copy; 2024 - Hospital_Managment_System - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            &copy; 2024 - Hospital Management System - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

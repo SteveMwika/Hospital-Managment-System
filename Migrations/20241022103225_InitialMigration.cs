@@ -264,7 +264,6 @@ namespace Hospital_Managment_System.Migrations
                     AppointmentDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     AppointmentStatus = table.Column<int>(type: "int", nullable: false),
                     BillAmount = table.Column<double>(type: "float", nullable: false),
-                    BillStatus = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     DoctorNotification = table.Column<int>(type: "int", nullable: false),
                     PatientNotification = table.Column<int>(type: "int", nullable: false),
                     FeedbackStatus = table.Column<int>(type: "int", nullable: false)
@@ -284,12 +283,12 @@ namespace Hospital_Managment_System.Migrations
                 name: "AppointmentDoctor",
                 columns: table => new
                 {
-                    AppointmentId = table.Column<int>(type: "int", nullable: false),
-                    DoctorId = table.Column<int>(type: "int", nullable: false)
+                    DoctorId = table.Column<int>(type: "int", nullable: false),
+                    AppointmentId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AppointmentDoctor", x => new { x.AppointmentId, x.DoctorId });
+                    table.PrimaryKey("PK_AppointmentDoctor", x => new { x.DoctorId, x.AppointmentId });
                     table.ForeignKey(
                         name: "FK_AppointmentDoctor_Appointments_AppointmentId",
                         column: x => x.AppointmentId,
@@ -332,7 +331,7 @@ namespace Hospital_Managment_System.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    AppointmentID = table.Column<int>(type: "int", nullable: false),
+                    AppointmentId = table.Column<int>(type: "int", nullable: false),
                     TestName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     Result = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     TestDate = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -342,8 +341,8 @@ namespace Hospital_Managment_System.Migrations
                 {
                     table.PrimaryKey("PK_LabTests", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_LabTests_Appointments_AppointmentID",
-                        column: x => x.AppointmentID,
+                        name: "FK_LabTests_Appointments_AppointmentId",
+                        column: x => x.AppointmentId,
                         principalTable: "Appointments",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -355,8 +354,8 @@ namespace Hospital_Managment_System.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    AppointmentID = table.Column<int>(type: "int", nullable: false),
-                    MedicineID = table.Column<int>(type: "int", nullable: false),
+                    AppointmentId = table.Column<int>(type: "int", nullable: false),
+                    MedicineId = table.Column<int>(type: "int", nullable: false),
                     Instructions = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     DoctorId = table.Column<int>(type: "int", nullable: false),
                     PatientId = table.Column<int>(type: "int", nullable: false)
@@ -365,8 +364,8 @@ namespace Hospital_Managment_System.Migrations
                 {
                     table.PrimaryKey("PK_Prescriptions", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Prescriptions_Appointments_AppointmentID",
-                        column: x => x.AppointmentID,
+                        name: "FK_Prescriptions_Appointments_AppointmentId",
+                        column: x => x.AppointmentId,
                         principalTable: "Appointments",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -377,8 +376,8 @@ namespace Hospital_Managment_System.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_Prescriptions_Medicines_MedicineID",
-                        column: x => x.MedicineID,
+                        name: "FK_Prescriptions_Medicines_MedicineId",
+                        column: x => x.MedicineId,
                         principalTable: "Medicines",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -401,9 +400,9 @@ namespace Hospital_Managment_System.Migrations
                     QuantityChanged = table.Column<int>(type: "int", nullable: false),
                     NewQuantity = table.Column<int>(type: "int", nullable: false),
                     DateTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    DoctorId = table.Column<int>(type: "int", nullable: false),
-                    PatientId = table.Column<int>(type: "int", nullable: false),
-                    PrescriptionId = table.Column<int>(type: "int", nullable: false),
+                    DoctorId = table.Column<int>(type: "int", nullable: true),
+                    PatientId = table.Column<int>(type: "int", nullable: true),
+                    PrescriptionId = table.Column<int>(type: "int", nullable: true),
                     AdminUserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false)
                 },
@@ -443,9 +442,9 @@ namespace Hospital_Managment_System.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_AppointmentDoctor_DoctorId",
+                name: "IX_AppointmentDoctor_AppointmentId",
                 table: "AppointmentDoctor",
-                column: "DoctorId");
+                column: "AppointmentId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Appointments_PatientId",
@@ -508,9 +507,9 @@ namespace Hospital_Managment_System.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_LabTests_AppointmentID",
+                name: "IX_LabTests_AppointmentId",
                 table: "LabTests",
-                column: "AppointmentID");
+                column: "AppointmentId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_MedicineInventoryLogs_AdminUserId",
@@ -548,9 +547,9 @@ namespace Hospital_Managment_System.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Prescriptions_AppointmentID",
+                name: "IX_Prescriptions_AppointmentId",
                 table: "Prescriptions",
-                column: "AppointmentID");
+                column: "AppointmentId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Prescriptions_DoctorId",
@@ -558,9 +557,9 @@ namespace Hospital_Managment_System.Migrations
                 column: "DoctorId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Prescriptions_MedicineID",
+                name: "IX_Prescriptions_MedicineId",
                 table: "Prescriptions",
-                column: "MedicineID");
+                column: "MedicineId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Prescriptions_PatientId",

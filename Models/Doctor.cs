@@ -1,7 +1,8 @@
 ﻿using Hospital_Managment_System.Enums;
 using Microsoft.AspNetCore.Identity;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Hospital_Managment_System.Models
 {
@@ -26,11 +27,11 @@ namespace Hospital_Managment_System.Models
 
         [Required]
         [EmailAddress]
-        public required string Email { get; set; }
+        public string Email { get; set; }
 
         [Required]
-        public required string Phone { get; set; }
-
+        [Phone]
+        public string Phone { get; set; }
 
         [Required]
         public DoctorSpecialization Specialization { get; set; }
@@ -38,7 +39,7 @@ namespace Hospital_Managment_System.Models
         [Required]
         public DoctorStatus Status { get; set; }
 
-        [ForeignKey("DepartmentId")]
+        [Required]
         public int DepartmentId { get; set; }
         public Department Department { get; set; }
 
@@ -47,13 +48,10 @@ namespace Hospital_Managment_System.Models
 
         public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
 
-
         // Foreign Key to IdentityUser
         [Required]
         public string UserId { get; set; }
 
-        [ForeignKey("UserId")]
         public IdentityUser User { get; set; }
-
     }
 }

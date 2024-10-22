@@ -1,12 +1,17 @@
 ﻿using Hospital_Managment_System.Data;
+using Hospital_Managment_System.Enums;
 using Hospital_Managment_System.Models;
+using Hospital_Managment_System.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace Hospital_Managment_System.Controllers
 {
+    [Authorize]
     public class PatientsController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -16,18 +21,40 @@ namespace Hospital_Managment_System.Controllers
         {
             _context = context;
             _userManager = userManager;
-
         }
+
 
         // GET: Patients
         [Authorize(Roles = "Admin, Doctor")]
         public async Task<IActionResult> Index()
         {
-            var patients = await _context.Patients
-                .Include(p => p.User)
-                .ToListAsync();
+            // Get the currently logged-in user's ID
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            return View(patients);
+            // Initialize a query for patients
+            IQueryable<Patient> patientsQuery = _context.Patients
+                .Include(p => p.User)
+                .Include(p => p.PrimaryDoctor)
+                .Include(p => p.Appointments)
+                    .ThenInclude(a => a.Doctors);
+
+            if (User.IsInRole("Doctor"))
+            {
+                // Get the Doctor associated with the logged-in user
+                var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.UserId == userId);
+
+                if (doctor != null)
+                {
+                    // Filter the query to only show patients of the logged-in doctor or associated via an appointment
+                    patientsQuery = patientsQuery.Where(p => p.PrimaryDoctorId == doctor.Id ||
+                                                             p.Appointments.Any(a => a.Doctors.Any(d => d.Id == doctor.Id)));
+                }
+            }
+
+            // Execute the query and return the list of patients
+            var patients = await patientsQuery.AsNoTracking().ToListAsync();
+
+            return View(patients); // Ensure this returns the correct view for patients
         }
 
         // GET: Patients/Details/5
@@ -41,6 +68,9 @@ namespace Hospital_Managment_System.Controllers
 
             var patient = await _context.Patients
                 .Include(p => p.User)
+                .Include(p => p.PrimaryDoctor)
+                .Include(p => p.Appointments)
+                    .ThenInclude(a => a.Doctors)
                 .FirstOrDefaultAsync(m => m.Id == id);
 
             if (patient == null)
@@ -48,7 +78,7 @@ namespace Hospital_Managment_System.Controllers
                 return NotFound();
             }
 
-            // For patients to Only View their own details
+            // For patients to only view their own details
             if (User.IsInRole("Patient"))
             {
                 var currentUser = await _userManager.GetUserAsync(User);
@@ -65,66 +95,76 @@ namespace Hospital_Managment_System.Controllers
         [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
-            // Pass a new instance of Patient to the view
-            var patient = new Patient
-            {
-                FirstName = string.Empty, // Set default value
-                LastName = string.Empty, // Set default value
-                PhoneNumber = string.Empty, // Set default value
-                Email = string.Empty, // Set default value
-                Address = string.Empty, // Set default value
-                EmergencyContact = string.Empty, // Set default value
-                DateTimeOfAdmission = DateTime.Now // Set default DateTimeOfAdmission
-            };
-            return View(patient);
+            // Populate Departments dropdown
+            ViewData["DepartmentId"] = new SelectList(_context.Departments, "Id", "Name");
+
+            // Populate Doctors dropdown
+            ViewData["PrimaryDoctorId"] = new SelectList(_context.Doctors, "Id", "FirstName");
+
+            // Populate Gender enum
+            ViewData["Gender"] = new SelectList(Enum.GetValues(typeof(Gender)).Cast<Gender>());
+
+            return View();
         }
 
         // POST: Patients/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Create([Bind("Id,FirstName,LastName,DateOfBirth,Gender,PhoneNumber,Email,Address,EmergencyContact,DateTimeOfAdmission")] Patient patient)
+        public async Task<IActionResult> Create(PatientViewModel model)
         {
-            
             if (!ModelState.IsValid)
             {
-                // Create new User Identity for the Patient
+                // Create a new IdentityUser for the Patient
                 var user = new IdentityUser
                 {
-                    UserName = patient.Email,
-                    Email = patient.Email,
+                    UserName = model.Email,
+                    Email = model.Email,
                     EmailConfirmed = true
                 };
 
-                var result = await _userManager.CreateAsync(user, "Patient@123"); // Assign a default password or handle appropriately
-
+                var result = await _userManager.CreateAsync(user, model.Password);
                 if (result.Succeeded)
                 {
-                    // Assign the user to the Patient Role
-                    await _userManager.AddToRoleAsync(user, "Patient");
+                    // Assign the Patient role
+                    await _userManager.AddToRoleAsync(user, UserRoles.Patient.ToString());
 
-                    // Associate the patient with the user
-                    patient.UserId = user.Id;
-                    patient.User = user; // Ensure the User property is set
+                    // Create a corresponding Patient record
+                    var patient = new Patient
+                    {
+                        FirstName = model.FirstName,
+                        LastName = model.LastName,
+                        DateOfBirth = model.DateOfBirth,
+                        Gender = model.Gender,
+                        PhoneNumber = model.PhoneNumber,
+                        Email = model.Email,
+                        Address = model.Address,
+                        EmergencyContact = model.EmergencyContact,
+                        DateTimeOfAdmission = model.DateTimeOfAdmission ?? DateTime.Now,
+                        PrimaryDoctorId = model.PrimaryDoctorId,
+                        UserId = user.Id
+                    };
 
-                    // Ensure the patient instance is added to the context
                     _context.Patients.Add(patient);
                     await _context.SaveChangesAsync();
+
                     return RedirectToAction(nameof(Index));
                 }
-                else
+
+                // Add errors to ModelState
+                foreach (var error in result.Errors)
                 {
-                    foreach (var error in result.Errors)
-                    {
-                        ModelState.AddModelError(string.Empty, error.Description);
-                    }
+                    ModelState.AddModelError(string.Empty, error.Description);
                 }
             }
 
-            return View(patient);
+            // If we reach here, something failed; repopulate dropdowns
+            ViewData["DepartmentId"] = new SelectList(_context.Departments, "Id", "Name", model.DepartmentId);
+            ViewData["PrimaryDoctorId"] = new SelectList(_context.Doctors, "Id", "FirstName", model.PrimaryDoctorId);
+            ViewData["Gender"] = new SelectList(Enum.GetValues(typeof(Gender)).Cast<Gender>(), model.Gender);
+
+            return View(model);
         }
-
-
 
         // GET: Patients/Edit/5
         [Authorize(Roles = "Admin, Patient")]
@@ -135,7 +175,9 @@ namespace Hospital_Managment_System.Controllers
                 return NotFound();
             }
 
-            var patient = await _context.Patients.FindAsync(id);
+            var patient = await _context.Patients
+                .Include(p => p.User)
+                .FirstOrDefaultAsync(p => p.Id == id);
             if (patient == null)
             {
                 return NotFound();
@@ -151,16 +193,42 @@ namespace Hospital_Managment_System.Controllers
                 }
             }
 
-            return View(patient);
+            // Populate Departments dropdown
+            ViewData["DepartmentId"] = new SelectList(_context.Departments, "Id", "Name", patient.PrimaryDoctor?.DepartmentId);
+
+            // Populate Doctors dropdown
+            ViewData["PrimaryDoctorId"] = new SelectList(_context.Doctors, "Id", "FirstName", patient.PrimaryDoctorId);
+
+            // Populate Gender enum
+            ViewData["Gender"] = new SelectList(Enum.GetValues(typeof(Gender)).Cast<Gender>(), patient.Gender);
+
+            // Initialize ViewModel
+            var model = new PatientViewModel
+            {
+                Id = patient.Id,
+                FirstName = patient.FirstName,
+                LastName = patient.LastName,
+                DateOfBirth = patient.DateOfBirth ?? default(DateTime),
+                Gender = patient.Gender ?? default(Gender),
+                PhoneNumber = patient.PhoneNumber,
+                Email = patient.Email,
+                Address = patient.Address,
+                EmergencyContact = patient.EmergencyContact,
+                DateTimeOfAdmission = patient.DateTimeOfAdmission,
+                PrimaryDoctorId = patient.PrimaryDoctorId,
+                Password = null // Do not allow password changes here
+            };
+
+            return View(model);
         }
 
         // POST: Patients/Edit/5
-        [HttpPost, ActionName("Edit")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin, Patient")]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,FirstName,LastName,DateOfBirth,Gender,PhoneNumber,Email,Address,EmergencyContact,DateTimeOfAdmission,UserId")] Patient patient)
+        public async Task<IActionResult> Edit(int id, PatientViewModel model)
         {
-            if (id != patient.Id)
+            if (id != model.Id)
             {
                 return NotFound();
             }
@@ -169,34 +237,53 @@ namespace Hospital_Managment_System.Controllers
             if (User.IsInRole("Patient"))
             {
                 var currentUser = await _userManager.GetUserAsync(User);
+                var patient = await _context.Patients.FindAsync(id);
                 if (currentUser == null || patient.UserId != currentUser.Id)
                 {
                     return Forbid();
                 }
             }
 
-            if (!ModelState.IsValid)
+            if (ModelState.IsValid)
             {
                 try
                 {
-                    // Update the IdentityUser if Email has changed
-                    var user = await _userManager.FindByIdAsync(patient.UserId);
-                    if (user != null)
+                    var patient = await _context.Patients.FindAsync(id);
+                    if (patient == null)
                     {
-                        if (user.Email != patient.Email)
+                        return NotFound();
+                    }
+
+                    // Update fields
+                    patient.FirstName = model.FirstName;
+                    patient.LastName = model.LastName;
+                    patient.DateOfBirth = model.DateOfBirth;
+                    patient.Gender = model.Gender;
+                    patient.PhoneNumber = model.PhoneNumber;
+                    patient.Email = model.Email;
+                    patient.Address = model.Address;
+                    patient.EmergencyContact = model.EmergencyContact;
+                    patient.DateTimeOfAdmission = model.DateTimeOfAdmission ?? patient.DateTimeOfAdmission;
+                    patient.PrimaryDoctorId = model.PrimaryDoctorId;
+
+                    // Update the IdentityUser email if it has changed
+                    var user = await _userManager.FindByIdAsync(patient.UserId);
+                    if (user != null && user.Email != model.Email)
+                    {
+                        user.Email = model.Email;
+                        user.UserName = model.Email;
+                        var result = await _userManager.UpdateAsync(user);
+                        if (!result.Succeeded)
                         {
-                            user.Email = patient.Email;
-                            user.UserName = patient.Email; // If using Email as Username
-                            var result = await _userManager.UpdateAsync(user);
-                            if (!result.Succeeded)
+                            foreach (var error in result.Errors)
                             {
-                                // Handle errors
-                                foreach (var error in result.Errors)
-                                {
-                                    ModelState.AddModelError("", error.Description);
-                                }
-                                return View(patient);
+                                ModelState.AddModelError(string.Empty, error.Description);
                             }
+                            // Repopulate dropdowns
+                            ViewData["DepartmentId"] = new SelectList(_context.Departments, "Id", "Name", model.DepartmentId);
+                            ViewData["PrimaryDoctorId"] = new SelectList(_context.Doctors, "Id", "FirstName", model.PrimaryDoctorId);
+                            ViewData["Gender"] = new SelectList(Enum.GetValues(typeof(Gender)).Cast<Gender>(), model.Gender);
+                            return View(model);
                         }
                     }
 
@@ -205,7 +292,7 @@ namespace Hospital_Managment_System.Controllers
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!PatientExists(patient.Id))
+                    if (!PatientExists(model.Id))
                     {
                         return NotFound();
                     }
@@ -215,20 +302,24 @@ namespace Hospital_Managment_System.Controllers
                     }
                 }
 
-                var currentUser = await _userManager.GetUserAsync(User);
-                if (!(User.IsInRole("Patient")))
-                {
-                    return RedirectToAction(nameof(Index));
-                }
-                else
+                // Redirect based on role
+                if (User.IsInRole("Patient"))
                 {
                     return RedirectToAction(nameof(MyDetails));
                 }
-
+                else
+                {
+                    return RedirectToAction(nameof(Index));
+                }
             }
-            return View(patient);
-        }
 
+            // If we reach here, something failed; repopulate dropdowns
+            ViewData["DepartmentId"] = new SelectList(_context.Departments, "Id", "Name", model.DepartmentId);
+            ViewData["PrimaryDoctorId"] = new SelectList(_context.Doctors, "Id", "FirstName", model.PrimaryDoctorId);
+            ViewData["Gender"] = new SelectList(Enum.GetValues(typeof(Gender)).Cast<Gender>(), model.Gender);
+
+            return View(model);
+        }
 
         private bool PatientExists(int id)
         {
@@ -246,8 +337,8 @@ namespace Hospital_Managment_System.Controllers
 
             var patient = await _context.Patients
                 .Include(p => p.User)
+                .Include(p => p.PrimaryDoctor)
                 .FirstOrDefaultAsync(m => m.Id == id);
-
             if (patient == null)
             {
                 return NotFound();
@@ -256,7 +347,7 @@ namespace Hospital_Managment_System.Controllers
             return View(patient);
         }
 
-
+        // POST: Patients/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
@@ -279,7 +370,6 @@ namespace Hospital_Managment_System.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-
         [Authorize(Roles = "Patient")]
         public async Task<IActionResult> MyDetails()
         {
@@ -291,6 +381,7 @@ namespace Hospital_Managment_System.Controllers
 
             var patient = await _context.Patients
                 .Include(p => p.User)
+                .Include(p => p.PrimaryDoctor)
                 .FirstOrDefaultAsync(p => p.UserId == currentUser.Id);
 
             if (patient == null)
@@ -298,8 +389,7 @@ namespace Hospital_Managment_System.Controllers
                 return NotFound();
             }
 
-            return View("Details", patient);
+            return View("PatientDetailsMore", patient); // Updated view name
         }
-
     }
 }

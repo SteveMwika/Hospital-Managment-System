@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Hospital_Managment_System.Models.ViewModels;
+using Hospital_Managment_System.Enums;
+using System.Threading.Tasks;
 
 namespace Hospital_Managment_System.Controllers
 {
@@ -29,7 +31,7 @@ namespace Hospital_Managment_System.Controllers
         }
 
         // GET: Account/Login
-        public IActionResult Login(string returnUrl = "null")
+        public IActionResult Login(string returnUrl = null)
         {
             ViewData["ReturnUrl"] = returnUrl;
             return View();
@@ -38,24 +40,35 @@ namespace Hospital_Managment_System.Controllers
         // POST: Account/Login
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginViewModel model, string returnUrl = "null")
+        public async Task<IActionResult> Login(LoginViewModel model, string returnUrl = null)
         {
             ViewData["ReturnUrl"] = returnUrl;
+
+            // Check if the form input is valid
             if (ModelState.IsValid)
             {
-                var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
-                if (result.Succeeded)
+                // Find the user by email
+                var user = await _userManager.FindByEmailAsync(model.Email);
+                if (user != null)
                 {
-                    if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-                        return Redirect(returnUrl);
-                    else
-                        return RedirectToAction("Index", "Home");
+                    // Attempt to sign in
+                    var result = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, lockoutOnFailure: false);
+                    if (result.Succeeded)
+                    {
+                        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                        {
+                            return Redirect(returnUrl);
+                        }
+                        else
+                        {
+                            return RedirectToAction("Index", "Home");
+                        }
+                    }
                 }
-                else
-                {
-                    ModelState.AddModelError(string.Empty, "Invalid login attempt.");
-                }
+                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
             }
+
+            // If ModelState is not valid or login failed, return the view with validation errors
             return View(model);
         }
 
@@ -74,13 +87,14 @@ namespace Hospital_Managment_System.Controllers
             {
                 var user = new IdentityUser { UserName = model.Email, Email = model.Email, EmailConfirmed = true };
                 var result = await _userManager.CreateAsync(user, model.Password);
+
                 if (result.Succeeded)
                 {
+                    // Ensure roles exist
+                    await EnsureRolesExist();
+
                     // Assign Patient role
-                    if (await _roleManager.RoleExistsAsync("Patient"))
-                    {
-                        await _userManager.AddToRoleAsync(user, "Patient");
-                    }
+                    await _userManager.AddToRoleAsync(user, UserRoles.Patient.ToString());
 
                     // Create a corresponding Patient record
                     var patient = new Patient
@@ -99,14 +113,19 @@ namespace Hospital_Managment_System.Controllers
                     _context.Patients.Add(patient);
                     await _context.SaveChangesAsync();
 
+                    // Sign in the user
                     await _signInManager.SignInAsync(user, isPersistent: false);
                     return RedirectToAction("Index", "Home");
                 }
+
+                // Add any errors to ModelState
                 foreach (var error in result.Errors)
                 {
                     ModelState.AddModelError(string.Empty, error.Description);
                 }
             }
+
+            // Return view with validation errors if registration fails
             return View(model);
         }
 
@@ -123,6 +142,22 @@ namespace Hospital_Managment_System.Controllers
         public IActionResult AccessDenied()
         {
             return View();
+        }
+
+        /// <summary>
+        /// Ensures that the necessary roles are created in the system.
+        /// </summary>
+        /// <returns></returns>
+        private async Task EnsureRolesExist()
+        {
+            foreach (var role in Enum.GetNames(typeof(UserRoles)))
+            {
+                if (!await _roleManager.RoleExistsAsync(role))
+                {
+                    var identityRole = new IdentityRole(role);
+                    await _roleManager.CreateAsync(identityRole);
+                }
+            }
         }
     }
 }

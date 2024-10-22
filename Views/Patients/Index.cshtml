@@ -1,4 +1,5 @@
-﻿@model IEnumerable<Hospital_Managment_System.Models.Patient>
+﻿@using System.Security.Claims
+@model IEnumerable<Hospital_Managment_System.Models.Patient>
 
 @{
     ViewData["Title"] = "Patients";
@@ -16,34 +17,36 @@
 <table class="table table-striped">
     <thead>
         <tr>
-            <th>@Html.DisplayNameFor(model => model.FirstOrDefault().FirstName)</th>
-            <th>@Html.DisplayNameFor(model => model.FirstOrDefault().LastName)</th>
-            <th>@Html.DisplayNameFor(model => model.FirstOrDefault().Email)</th>
-            <th>@Html.DisplayNameFor(model => model.FirstOrDefault().PhoneNumber)</th>
-            <th>@Html.DisplayNameFor(model => model.FirstOrDefault().Gender)</th>
-            <th></th>
+            <th>Full Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Primary Doctor</th>
+            <th>Actions</th>
         </tr>
     </thead>
     <tbody>
-        @foreach (var item in Model)
+        @foreach (var patient in Model)
         {
             <tr>
-                <td>@item.FirstName</td>
-                <td>@item.LastName</td>
-                <td>@item.Email</td>
-                <td>@item.PhoneNumber</td>
-                <td>@item.Gender</td>
+                <td>@patient.FirstName @patient.LastName</td>
+                <td>@patient.Email</td>
+                <td>@patient.PhoneNumber</td>
+                <td>@patient.PrimaryDoctor?.FirstName @patient.PrimaryDoctor?.LastName</td>
                 <td>
-                    <a asp-action="Details" asp-route-id="@item.Id">Details</a>
-                    @if (User.IsInRole("Admin") || (User.IsInRole("Patient") && User.Identity.Name == item.Email))
+                    <div>
+                        <a asp-action="Details" asp-route-id="@patient.Id" class="btn btn-info">Details</a>
+                    </div>
+                    @if (User.IsInRole("Admin") || (User.IsInRole("Patient") && patient.UserId == User.FindFirstValue(ClaimTypes.NameIdentifier)))
                     {
-                        <text> | </text>
-                        <a asp-action="Edit" asp-route-id="@item.Id">Edit</a>
+                        <div>
+                            <a asp-action="Edit" asp-route-id="@patient.Id" class="btn btn-warning">Edit</a>
+                        </div>
                     }
                     @if (User.IsInRole("Admin"))
                     {
-                        <text> | </text>
-                        <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                        <div>
+                            <a asp-action="Delete" asp-route-id="@patient.Id" class="btn btn-danger">Delete</a>
+                        </div>
                     }
                 </td>
             </tr>

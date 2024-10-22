@@ -96,7 +96,9 @@ using (var scope = app.Services.CreateScope())
             }
         }
 
-        //await SeedData.InitializeAsync(services);
+        // Seed Data **** Only Run this When the Database is Empty ****
+
+        await SeedData.InitializeAsync(services);
     }
     catch (Exception ex)
     {

@@ -4,8 +4,10 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Hospital_Managment_System.Models.ViewModels
 {
-    public class RegisterViewModel
+    public class PatientViewModel
     {
+        public int Id { get; set; }
+
         [Required]
         [Display(Name = "First Name")]
         [StringLength(100, ErrorMessage = "First Name cannot be longer than 100 characters.")]
@@ -46,15 +48,24 @@ namespace Hospital_Managment_System.Models.ViewModels
         [StringLength(15, ErrorMessage = "Emergency Contact cannot be longer than 15 characters.")]
         public string EmergencyContact { get; set; }
 
-        [Required]
-        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+        [Display(Name = "Date and Time of Admission")]
+        [DataType(DataType.DateTime)]
+        public DateTime? DateTimeOfAdmission { get; set; }
+
+        [Display(Name = "Primary Doctor")]
+        public int? PrimaryDoctorId { get; set; }
+
+        // Password is required only during creation
         [DataType(DataType.Password)]
         [Display(Name = "Password")]
+        [StringLength(100, ErrorMessage = "The {0} must be at least {2} characters long.", MinimumLength = 6)]
         public string Password { get; set; }
 
         [DataType(DataType.Password)]
         [Display(Name = "Confirm password")]
         [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
         public string ConfirmPassword { get; set; }
+
+        public int DepartmentId { get; set; }
     }
 }

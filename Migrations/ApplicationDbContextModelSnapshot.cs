@@ -24,17 +24,17 @@ namespace Hospital_Managment_System.Migrations
 
             modelBuilder.Entity("AppointmentDoctor", b =>
                 {
-                    b.Property<int>("AppointmentId")
-                        .HasColumnType("int");
-
                     b.Property<int>("DoctorId")
                         .HasColumnType("int");
 
-                    b.HasKey("AppointmentId", "DoctorId");
+                    b.Property<int>("AppointmentId")
+                        .HasColumnType("int");
 
-                    b.HasIndex("DoctorId");
+                    b.HasKey("DoctorId", "AppointmentId");
 
-                    b.ToTable("AppointmentDoctor");
+                    b.HasIndex("AppointmentId");
+
+                    b.ToTable("AppointmentDoctor", (string)null);
                 });
 
             modelBuilder.Entity("Hospital_Managment_System.Models.Appointment", b =>
@@ -53,11 +53,6 @@ namespace Hospital_Managment_System.Migrations
 
                     b.Property<double>("BillAmount")
                         .HasColumnType("float");
-
-                    b.Property<string>("BillStatus")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
 
                     b.Property<int>("DoctorNotification")
                         .HasColumnType("int");
@@ -188,7 +183,7 @@ namespace Hospital_Managment_System.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("AppointmentID")
+                    b.Property<int>("AppointmentId")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsCompleted")
@@ -209,7 +204,7 @@ namespace Hospital_Managment_System.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AppointmentID");
+                    b.HasIndex("AppointmentId");
 
                     b.ToTable("LabTests");
                 });
@@ -266,7 +261,7 @@ namespace Hospital_Managment_System.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<int>("DoctorId")
+                    b.Property<int?>("DoctorId")
                         .HasColumnType("int");
 
                     b.Property<int>("MedicineId")
@@ -275,10 +270,10 @@ namespace Hospital_Managment_System.Migrations
                     b.Property<int>("NewQuantity")
                         .HasColumnType("int");
 
-                    b.Property<int>("PatientId")
+                    b.Property<int?>("PatientId")
                         .HasColumnType("int");
 
-                    b.Property<int>("PrescriptionId")
+                    b.Property<int?>("PrescriptionId")
                         .HasColumnType("int");
 
                     b.Property<int>("QuantityChanged")
@@ -370,7 +365,7 @@ namespace Hospital_Managment_System.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("AppointmentID")
+                    b.Property<int>("AppointmentId")
                         .HasColumnType("int");
 
                     b.Property<int>("DoctorId")
@@ -381,7 +376,7 @@ namespace Hospital_Managment_System.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<int>("MedicineID")
+                    b.Property<int>("MedicineId")
                         .HasColumnType("int");
 
                     b.Property<int>("PatientId")
@@ -389,11 +384,11 @@ namespace Hospital_Managment_System.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AppointmentID");
+                    b.HasIndex("AppointmentId");
 
                     b.HasIndex("DoctorId");
 
-                    b.HasIndex("MedicineID");
+                    b.HasIndex("MedicineId");
 
                     b.HasIndex("PatientId");
 
@@ -662,7 +657,7 @@ namespace Hospital_Managment_System.Migrations
                 {
                     b.HasOne("Hospital_Managment_System.Models.Appointment", "Appointment")
                         .WithMany("LabTests")
-                        .HasForeignKey("AppointmentID")
+                        .HasForeignKey("AppointmentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -680,8 +675,7 @@ namespace Hospital_Managment_System.Migrations
                     b.HasOne("Hospital_Managment_System.Models.Doctor", "Doctor")
                         .WithMany()
                         .HasForeignKey("DoctorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Hospital_Managment_System.Models.Medicine", "Medicine")
                         .WithMany("InventoryLogs")
@@ -692,14 +686,12 @@ namespace Hospital_Managment_System.Migrations
                     b.HasOne("Hospital_Managment_System.Models.Patient", "Patient")
                         .WithMany()
                         .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Hospital_Managment_System.Models.Prescription", "Prescription")
                         .WithMany()
                         .HasForeignKey("PrescriptionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("AdminUser");
 
@@ -734,7 +726,7 @@ namespace Hospital_Managment_System.Migrations
                 {
                     b.HasOne("Hospital_Managment_System.Models.Appointment", "Appointment")
                         .WithMany("Prescriptions")
-                        .HasForeignKey("AppointmentID")
+                        .HasForeignKey("AppointmentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -746,7 +738,7 @@ namespace Hospital_Managment_System.Migrations
 
                     b.HasOne("Hospital_Managment_System.Models.Medicine", "Medicine")
                         .WithMany("Prescriptions")
-                        .HasForeignKey("MedicineID")
+                        .HasForeignKey("MedicineId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 

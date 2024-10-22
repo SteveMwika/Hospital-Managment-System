@@ -1,0 +1,132 @@
+﻿@model Hospital_Managment_System.Models.Appointment
+
+@{
+    ViewData["Title"] = "Edit Appointment";
+}
+
+<h1>Edit Appointment</h1>
+
+<h4>Appointment</h4>
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Edit">
+            <input type="hidden" asp-for="Id" />
+
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group">
+                <label asp-for="PatientId" class="control-label"></label>
+                <select asp-for="PatientId" class="form-control select2-single" asp-items="ViewBag.PatientId">
+                    <option value="">-- Select Patient --</option>
+                </select>
+                <span asp-validation-for="PatientId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="AppointmentDate" class="control-label"></label>
+                <input asp-for="AppointmentDate" class="form-control" />
+                <span asp-validation-for="AppointmentDate" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="AppointmentStatus" class="control-label"></label>
+                <select asp-for="AppointmentStatus" class="form-control select2-single" asp-items='@(ViewData["AppointmentStatus"] as SelectList)'></select>
+                <span asp-validation-for="AppointmentStatus" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="BillAmount" class="control-label"></label>
+                <input asp-for="BillAmount" class="form-control" />
+                <span asp-validation-for="BillAmount" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="FeedbackStatus" class="control-label"></label>
+                <select asp-for="FeedbackStatus" class="form-control select2-single" asp-items='@(ViewData["FeedbackStatus"] as SelectList)'></select>
+                <span asp-validation-for="FeedbackStatus" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <h5>Assigned Doctors</h5>
+                <ul id="assigned-doctors-list">
+                    @if (ViewBag.AssignedDoctors != null)
+                    {
+                        @foreach (var doctor in ViewBag.AssignedDoctors)
+                        {
+                            <li id="doctor-@doctor.Id">
+                                @doctor.FirstName @doctor.LastName
+                                <button type="button" class="btn btn-danger btn-sm remove-doctor" data-doctor-id="@doctor.Id">Remove</button>
+                            </li>
+                        }
+                    }
+                </ul>
+            </div>
+
+            <div class="form-group">
+                <h5>Add More Doctors</h5>
+                <select id="doctor-selection" class="form-control select2-multiple" multiple="multiple">
+                    @foreach (var doctor in ViewBag.UnassignedDoctors)
+                    {
+                        <option value="@doctor.Id">@doctor.FirstName @doctor.LastName</option>
+                    }
+                </select>
+                <span class="text-danger" asp-validation-for="Doctors"></span>
+            </div>
+
+            <div class="form-group">
+                <input type="submit" value="Save" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            // Initialize Select2 for Patient, AppointmentStatus, and FeedbackStatus fields
+            $('.select2-single').select2({
+                placeholder: "Select an option",
+                allowClear: true
+            });
+
+            // Initialize Select2 for Doctors with searchable multi-select
+            $('.select2-multiple').select2({
+                placeholder: "Select doctors",
+                allowClear: true
+            });
+
+            // Handle adding selected doctors to the assigned doctors list
+            $('#doctor-selection').on('change', function () {
+                var selectedDoctors = $(this).val();
+                if (selectedDoctors.length > 0) {
+                    selectedDoctors.forEach(function (doctorId) {
+                        var doctorName = $('#doctor-selection option[value="' + doctorId + '"]').text();
+                        if (!$('#assigned-doctors-list').find('#doctor-' + doctorId).length) {
+                            $('#assigned-doctors-list').append(
+                                `<li id="doctor-${doctorId}">
+                                            ${doctorName}
+                                            <button type="button" class="btn btn-danger btn-sm remove-doctor" data-doctor-id="${doctorId}">Remove</button>
+                                        </li>`
+                            );
+                        }
+                    });
+                }
+
+                // Clear the selection in the drop-down
+                $('#doctor-selection').val(null).trigger('change');
+            });
+
+            // Handle removing doctors from the assigned doctors list
+            $('#assigned-doctors-list').on('click', '.remove-doctor', function () {
+                var doctorId = $(this).data('doctor-id');
+                $('#doctor-' + doctorId).remove();
+            });
+        });
+    </script>
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
