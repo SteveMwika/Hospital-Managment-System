@@ -32,6 +32,9 @@ namespace Hospital_Managment_System.Models
 
         public FeedbackStatus FeedbackStatus { get; set; }
 
+        [StringLength(200)]
+        public string Feedback { get; set; }
+
         // Navigation Properties
         public ICollection<Prescription> Prescriptions { get; set; } = new List<Prescription>();
 

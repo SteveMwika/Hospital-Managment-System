@@ -1,124 +1,184 @@
 ﻿@model Hospital_Managment_System.Models.Appointment
 
 @{
-    ViewData["Title"] = "Appointment Details";
+    ViewData["Title"] = "Appointment Report";
+    Layout = "~/Views/Shared/_Layout.cshtml"; // Your layout
 }
 
-<h1>Appointment Details</h1>
+<h1 class="text-center text-primary mb-4">Appointment Report</h1>
 
-<div>
-    <h4>Appointment</h4>
-    <hr />
-    <dl class="row">
-        <dt class="col-sm-2">Patient</dt>
-        <dd class="col-sm-10">@Model.Patient.FirstName @Model.Patient.LastName</dd>
-
-        <dt class="col-sm-2">Appointment Date</dt>
-        <dd class="col-sm-10">@Model.AppointmentDate.ToString("yyyy-MM-dd HH:mm")</dd>
-
-        <dt class="col-sm-2">Status</dt>
-        <dd class="col-sm-10">@Model.AppointmentStatus</dd>
-
-        <dt class="col-sm-2">Bill Amount</dt>
-        <dd class="col-sm-10">@Model.BillAmount</dd>
-
-        <dt class="col-sm-2">Feedback Status</dt>
-        <dd class="col-sm-10">@Model.FeedbackStatus</dd>
-
-        <dt class="col-sm-2">Doctors</dt>
-        <dd class="col-sm-10">
+<div class="container">
+    <!-- Doctor Information -->
+    <section class="mb-5">
+        <h3 class="text-dark">Doctor Information</h3>
+        <hr />
+        @if (Model.Doctors.Any())
+        {
             @foreach (var doctor in Model.Doctors)
             {
-                <span>@doctor.FirstName @doctor.LastName (@doctor.Specialization)<br /></span>
+                <dl class="row">
+                    <dt class="col-sm-4">Full Name</dt>
+                    <dd class="col-sm-8">Dr. @doctor.FirstName @doctor.LastName</dd>
+
+                    <dt class="col-sm-4">Specialization</dt>
+                    <dd class="col-sm-8">@doctor.Specialization</dd>
+
+                    <dt class="col-sm-4">Department</dt>
+                    <dd class="col-sm-8">@doctor.Department?.Name</dd>
+                </dl>
             }
-        </dd>
-    </dl>
-</div>
+        }
+        else
+        {
+            <p>No assigned doctor for this appointment.</p>
+        }
+    </section>
 
-<div>
-    <h4>Billing</h4>
-    <hr />
-    @if (Model.Billing != null)
-    {
+    <!-- Patient Information -->
+    <section class="mb-5">
+        <h3 class="text-dark">Patient Information</h3>
+        <hr />
         <dl class="row">
-            <dt class="col-sm-2">Amount</dt>
-            <dd class="col-sm-10">@Model.Billing.Amount</dd>
+            <dt class="col-sm-4">Full Name</dt>
+            <dd class="col-sm-8">@Model.Patient.FirstName @Model.Patient.LastName</dd>
 
-            <dt class="col-sm-2">Status</dt>
-            <dd class="col-sm-10">@Model.Billing.Status</dd>
+            <dt class="col-sm-4">Email</dt>
+            <dd class="col-sm-8">@Model.Patient.Email</dd>
 
-            <dt class="col-sm-2">Billing Date</dt>
-            <dd class="col-sm-10">@Model.Billing.BillingDate.ToString("yyyy-MM-dd")</dd>
+            <dt class="col-sm-4">Address</dt>
+            <dd class="col-sm-8">@Model.Patient.Address</dd>
+
+            <dt class="col-sm-4">Phone Number</dt>
+            <dd class="col-sm-8">@Model.Patient.PhoneNumber </dd>
+
+            <dt class="col-sm-4">Emergency Contact</dt>
+            <dd class="col-sm-8">@Model.Patient.EmergencyContact</dd>
+
+            <dt class="col-sm-4">Date of Birth</dt>
+            <dd class="col-sm-8">@Model.Patient.DateOfBirth?.ToString("yyyy-MM-dd")</dd>
         </dl>
-    }
-    else
-    {
-        <p>No billing information available.</p>
-    }
-</div>
+    </section>
 
-<div>
-    <h4>Prescriptions</h4>
-    <hr />
-    @if (Model.Prescriptions.Any())
+    <!-- Appointment Information -->
+    <section class="mb-5">
+        <h3 class="text-dark">Appointment Information</h3>
+        <hr />
+        <dl class="row">
+            <dt class="col-sm-4">Appointment Date</dt>
+            <dd class="col-sm-8">@Model.AppointmentDate.ToString("yyyy-MM-dd HH:mm")</dd>
+
+            <dt class="col-sm-4">Appointment Status</dt>
+            <dd class="col-sm-8">@Model.AppointmentStatus</dd>
+
+            <dt class="col-sm-4">Feedback Status</dt>
+            <dd class="col-sm-8">@Model.FeedbackStatus</dd>
+        </dl>
+    </section>
+
+    <!-- Billing Information (Visible to Patient) -->
+    @if (User.IsInRole("Patient") || User.IsInRole("Admin"))
     {
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>Medicine</th>
-                    <th>Instructions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var prescription in Model.Prescriptions)
-                {
+        <section class="mb-5">
+            <h3 class="text-dark">Billing Information</h3>
+            <hr />
+            @if (Model.Billing != null)
+            {
+                <dl class="row">
+                    <dt class="col-sm-4">Total Amount</dt>
+                    <dd class="col-sm-8">$@Model.Billing.Amount.ToString("F2")</dd>
+
+                    <dt class="col-sm-4">Billing Status</dt>
+                    <dd class="col-sm-8">@Model.Billing.Status ?? "N/A"</dd>
+
+                    <dt class="col-sm-4">Billing Date</dt>
+                    <dd class="col-sm-8">@Model.Billing.BillingDate.ToString("yyyy-MM-dd")</dd>
+                </dl>
+            }
+            else
+            {
+                <p>No billing information available.</p>
+            }
+        </section>
+    }
+
+    <!-- Prescription Information -->
+    <section class="mb-5">
+        <h3 class="text-dark">Prescriptions</h3>
+        <hr />
+        @if (Model.Prescriptions.Any())
+        {
+            <table class="table table-bordered">
+                <thead>
                     <tr>
-                        <td>@prescription.Medicine.Name</td>
-                        <td>@prescription.Instructions</td>
+                        <th>Medicine</th>
+                        <th>Instructions</th>
+                        <th>Assigned By</th>
+                        <th>Prescribed To</th>
+                        <th>Medicine Info</th>
                     </tr>
-                }
-            </tbody>
-        </table>
-    }
-    else
-    {
-        <p>No prescriptions available.</p>
-    }
-</div>
+                </thead>
+                <tbody>
+                    @foreach (var prescription in Model.Prescriptions)
+                    {
+                        <tr>
+                            <td>@prescription.Medicine.Name</td>
+                            <td>@prescription.Instructions ?? "N/A"</td>
+                            <td>Dr. @prescription.Doctor.FirstName @prescription.Doctor.LastName</td> <!-- Assuming Prescription has Doctor property -->
+                            <td>@Model.Patient.FirstName @Model.Patient.LastName</td>
+                            <td>
+                                <ul>
+                                    <li>Name: @prescription.Medicine.Name</li>
+                                    <li>Description: @prescription.Medicine.Description ?? "N/A"</li>
+                                    <li>Price: $@Model.Billing.Status ?? "N/A"</li>
+                                </ul>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p>No prescriptions available.</p>
+        }
+    </section>
 
-<div>
-    <h4>Lab Tests</h4>
-    <hr />
-    @if (Model.LabTests.Any())
-    {
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>Test Name</th>
-                    <th>Result</th>
-                    <th>Test Date</th>
-                    <th>Completed</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var labTest in Model.LabTests)
-                {
+    <!-- Lab Test Information -->
+    <section class="mb-5">
+        <h3 class="text-dark">Lab Tests</h3>
+        <hr />
+        @if (Model.LabTests.Any())
+        {
+            <table class="table table-bordered">
+                <thead>
                     <tr>
-                        <td>@labTest.TestName</td>
-                        <td>@labTest.Result</td>
-                        <td>@labTest.TestDate.ToString("yyyy-MM-dd")</td>
-                        <td>@(labTest.IsCompleted ? "Yes" : "No")</td>
+                        <th>Test Name</th>
+                        <th>Test Date</th>
+                        <th>Completed</th>
+                        <th>Result</th>
                     </tr>
-                }
-            </tbody>
-        </table>
-    }
-    else
-    {
-        <p>No lab tests available.</p>
-    }
-</div>
+                </thead>
+                <tbody>
+                    @foreach (var labTest in Model.LabTests)
+                    {
+                        <tr>
+                            <td>@labTest.TestName</td>
+                            <td>@labTest.TestDate.ToString("yyyy-MM-dd")</td>
+                            <td>@(labTest.IsCompleted ? "Yes" : "No")</td>
+                            <td>@labTest.TestResult ?? "N/A"</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p>No lab tests available.</p>
+        }
+    </section>
 
-<div>
-    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+    <!-- Back Button -->
+    <div class="form-group mb-4">
+        <a href="@Url.Action("Index", "Appointments")" class="btn btn-secondary">Back to Appointments</a>
+    </div>
 </div>

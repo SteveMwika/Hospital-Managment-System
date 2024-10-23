@@ -25,9 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Views\Departments\" />
     <Folder Include="Views\Medicines\" />
-    <Folder Include="Views\LabTests\" />
     <Folder Include="Views\Billings\" />
   </ItemGroup>
 

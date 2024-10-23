@@ -2,83 +2,135 @@
 
 @{
     ViewData["Title"] = "Edit Appointment";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Edit Appointment</h1>
+<div class="container py-5">
+    <h1 class="text-center text-primary mb-5">@ViewData["Title"]</h1>
 
-<h4>Appointment</h4>
-<hr />
-<div class="row">
-    <div class="col-md-6">
-        <form asp-action="Edit">
-            <input type="hidden" asp-for="Id" />
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <form asp-action="Edit" method="post" class="p-5 border rounded shadow-lg bg-white">
+                <input type="hidden" asp-for="Id" />
 
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-4"></div>
 
-            <div class="form-group">
-                <label asp-for="PatientId" class="control-label"></label>
-                <select asp-for="PatientId" class="form-control select2-single" asp-items="ViewBag.PatientId">
-                    <option value="">-- Select Patient --</option>
-                </select>
-                <span asp-validation-for="PatientId" class="text-danger"></span>
-            </div>
+                <!-- Patient's Full Name (Visible to Doctor) -->
+                @if (User.IsInRole("Doctor"))
+                {
+                    <div class="form-group mb-5">
+                        <label class="form-label font-weight-bold">Patient's Full Name</label>
+                        <div class="p-3 border rounded bg-light text-dark">
+                            <span>@Model.Patient.FirstName @Model.Patient.LastName</span>
+                        </div>
+                    </div>
+                }
 
-            <div class="form-group">
-                <label asp-for="AppointmentDate" class="control-label"></label>
-                <input asp-for="AppointmentDate" class="form-control" />
-                <span asp-validation-for="AppointmentDate" class="text-danger"></span>
-            </div>
+                <!-- Doctor's Full Name (Visible to Patient) -->
+                @if (User.IsInRole("Patient"))
+                {
+                    <div class="form-group mb-5">
+                        <label class="form-label font-weight-bold">Doctor's Full Name</label>
+                        <div class="p-3 border rounded bg-light text-dark">
+                            <span>
+                                @foreach (var doctor in Model.Doctors)
+                                {
+                                    @doctor.FirstName @doctor.LastName <br />
+                                }
+                            </span>
+                        </div>
+                    </div>
+                }
 
-            <div class="form-group">
-                <label asp-for="AppointmentStatus" class="control-label"></label>
-                <select asp-for="AppointmentStatus" class="form-control select2-single" asp-items='@(ViewData["AppointmentStatus"] as SelectList)'></select>
-                <span asp-validation-for="AppointmentStatus" class="text-danger"></span>
-            </div>
+                <!-- Appointment Date -->
+                <div class="form-group mb-5">
+                    <label asp-for="AppointmentDate" class="form-label font-weight-bold">Appointment Date</label>
+                    <div class="input-group input-group-lg">
+                        <input asp-for="AppointmentDate" class="form-control rounded" type="datetime-local" />
+                        <span class="input-group-text bg-primary text-white">
+                            <i class="bi bi-calendar2-event-fill"></i>
+                        </span>
+                    </div>
+                    <span asp-validation-for="AppointmentDate" class="text-danger"></span>
+                </div>
 
-            <div class="form-group">
-                <label asp-for="BillAmount" class="control-label"></label>
-                <input asp-for="BillAmount" class="form-control" />
-                <span asp-validation-for="BillAmount" class="text-danger"></span>
-            </div>
+                <!-- Appointment Status for Doctor -->
+                @if (User.IsInRole("Doctor"))
+                {
+                    <div class="form-group mb-5">
+                        <label asp-for="AppointmentStatus" class="form-label font-weight-bold">Appointment Status</label>
+                        <select asp-for="AppointmentStatus" class="form-control rounded" asp-items='@(ViewData["AppointmentStatus"] as SelectList)'></select>
+                        <span asp-validation-for="AppointmentStatus" class="text-danger"></span>
+                    </div>
+                }
 
-            <div class="form-group">
-                <label asp-for="FeedbackStatus" class="control-label"></label>
-                <select asp-for="FeedbackStatus" class="form-control select2-single" asp-items='@(ViewData["FeedbackStatus"] as SelectList)'></select>
-                <span asp-validation-for="FeedbackStatus" class="text-danger"></span>
-            </div>
+                <!-- Feedback Status -->
+                <div class="form-group mb-5">
+                    <label class="form-label font-weight-bold">Feedback Status</label>
+                    <div class="p-3 border rounded bg-light text-dark">
+                        <span>
+                            @(Model.FeedbackStatus == Hospital_Managment_System.Enums.FeedbackStatus.Given ? "Given" : "Pending")
+                        </span>
+                    </div>
+                </div>
 
-            <div class="form-group">
-                <h5>Assigned Doctors</h5>
-                <ul id="assigned-doctors-list">
-                    @if (ViewBag.AssignedDoctors != null)
-                    {
-                        @foreach (var doctor in ViewBag.AssignedDoctors)
-                        {
-                            <li id="doctor-@doctor.Id">
-                                @doctor.FirstName @doctor.LastName
-                                <button type="button" class="btn btn-danger btn-sm remove-doctor" data-doctor-id="@doctor.Id">Remove</button>
-                            </li>
-                        }
-                    }
-                </ul>
-            </div>
+                <!-- Feedback Input for Patient (Visible always) -->
+                @if (User.IsInRole("Patient"))
+                {
+                    <div class="form-group mb-5">
+                        <label for="feedbackInput" class="form-label font-weight-bold">Your Feedback</label>
+                        <textarea id="feedbackInput" name="feedbackInput" class="form-control rounded" rows="4" placeholder="Provide your feedback"></textarea>
+                        <span asp-validation-for="Feedback" class="text-danger"></span>
+                    </div>
 
-            <div class="form-group">
-                <h5>Add More Doctors</h5>
-                <select id="doctor-selection" class="form-control select2-multiple" multiple="multiple">
-                    @foreach (var doctor in ViewBag.UnassignedDoctors)
-                    {
-                        <option value="@doctor.Id">@doctor.FirstName @doctor.LastName</option>
-                    }
-                </select>
-                <span class="text-danger" asp-validation-for="Doctors"></span>
-            </div>
+                    <!-- Submit Feedback Button (Visible always) -->
+                    <div class="text-center mb-5">
+                        <button type="submit" class="btn btn-primary btn-lg px-4 py-2">Submit Feedback</button>
+                    </div>
+                }
 
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
-                <a asp-action="Index" class="btn btn-secondary">Back to List</a>
-            </div>
-        </form>
+                <!-- Assigned Doctors for Doctor -->
+                @if (User.IsInRole("Doctor"))
+                {
+                    <div class="form-group mb-5">
+                        <h5 class="font-weight-bold">Assigned Doctors</h5>
+                        <ul class="list-group">
+                            @if (ViewBag.AssignedDoctors != null)
+                            {
+                                @foreach (var doctor in ViewBag.AssignedDoctors)
+                                {
+                                    <li class="list-group-item d-flex justify-content-between align-items-center" id="doctor-@doctor.Id">
+                                        @doctor.FirstName @doctor.LastName
+                                        <button type="button" class="btn btn-danger btn-sm remove-doctor" data-doctor-id="@doctor.Id">Remove</button>
+                                    </li>
+                                }
+                            }
+                        </ul>
+                    </div>
+
+                    <div class="form-group mb-5">
+                        <h5 class="font-weight-bold">Add More Doctors</h5>
+                        <select id="doctor-selection" class="form-control select2-multiple" multiple="multiple">
+                            @foreach (var doctor in ViewBag.UnassignedDoctors)
+                            {
+                                <option value="@doctor.Id">@doctor.FirstName @doctor.LastName</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Doctors" class="text-danger"></span>
+                    </div>
+
+                    <!-- Save Button -->
+                    <div class="text-center mb-5">
+                        <input type="submit" value="Save" class="btn btn-primary btn-lg px-5 py-2" />
+                    </div>
+                }
+
+                <!-- Back Button -->
+                <div class="text-center">
+                    <a href="@Url.Action("Index", "Appointments")" class="btn btn-secondary btn-lg px-5 py-2">Back to Appointments</a>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -86,47 +138,12 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function () {
-            // Initialize Select2 for Patient, AppointmentStatus, and FeedbackStatus fields
-            $('.select2-single').select2({
-                placeholder: "Select an option",
-                allowClear: true
-            });
-
-            // Initialize Select2 for Doctors with searchable multi-select
+            // Initialize Select2 for doctor selection
             $('.select2-multiple').select2({
                 placeholder: "Select doctors",
                 allowClear: true
             });
-
-            // Handle adding selected doctors to the assigned doctors list
-            $('#doctor-selection').on('change', function () {
-                var selectedDoctors = $(this).val();
-                if (selectedDoctors.length > 0) {
-                    selectedDoctors.forEach(function (doctorId) {
-                        var doctorName = $('#doctor-selection option[value="' + doctorId + '"]').text();
-                        if (!$('#assigned-doctors-list').find('#doctor-' + doctorId).length) {
-                            $('#assigned-doctors-list').append(
-                                `<li id="doctor-${doctorId}">
-                                            ${doctorName}
-                                            <button type="button" class="btn btn-danger btn-sm remove-doctor" data-doctor-id="${doctorId}">Remove</button>
-                                        </li>`
-                            );
-                        }
-                    });
-                }
-
-                // Clear the selection in the drop-down
-                $('#doctor-selection').val(null).trigger('change');
-            });
-
-            // Handle removing doctors from the assigned doctors list
-            $('#assigned-doctors-list').on('click', '.remove-doctor', function () {
-                var doctorId = $(this).data('doctor-id');
-                $('#doctor-' + doctorId).remove();
-            });
-        });
+                });
     </script>
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
+    @await Html.PartialAsync("_ValidationScriptsPartial")
 }

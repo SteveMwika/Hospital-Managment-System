@@ -6,16 +6,16 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Hospital_Managment_System.ViewModels
 {
-    public class DoctorCreateViewModel
+    public class PatientCreateViewModel
     {
-        // Readonly field for Doctor's Name
-        public string DoctorName { get; set; }
+        // Readonly field for Patient's Name
+        public string PatientName { get; set; }
 
-        // Dropdown for Patients
-        [Display(Name = "Patient")]
+        // Dropdown for Doctors
+        [Display(Name = "Primary Doctor")]
         [Required]
-        public int SelectedPatientId { get; set; }
-        public IEnumerable<SelectListItem> Patients { get; set; }
+        public int SelectedDoctorId { get; set; }
+        public IEnumerable<SelectListItem> Doctors { get; set; }
 
         // Appointment Date Selection
         [Display(Name = "Appointment Date")]
@@ -23,11 +23,11 @@ namespace Hospital_Managment_System.ViewModels
         [Required]
         public DateTime AppointmentDate { get; set; }
 
-        // Appointment Status Dropdown
-        [Display(Name = "Appointment Status")]
-        [Required]
-        public AppointmentStatus SelectedAppointmentStatus { get; set; }
-        public IEnumerable<SelectListItem> AppointmentStatuses { get; set; }
+        // Hidden/Background Fields
+        public float BillAmount { get; set; }
+        public BillStatus BillStatus { get; set; }
+        public FeedbackStatus FeedbackStatus { get; set; }
+        public string Feedback { get; set; }
 
         // Notifications
         public int DoctorNotification { get; set; } = 0;

@@ -4,65 +4,130 @@
     ViewData["Title"] = "Appointments";
 }
 
-<h1>Appointments</h1>
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="text-info">Appointments</h1>
+        <!-- Redirect Admins and Doctors to the default Create Appointment view -->
+        <a asp-action="Create" class="btn btn-outline-primary btn-lg">
+            <i class="bi bi-calendar-plus"></i> Create New Appointment
+        </a>
+    </div>
 
-<p>
-    @if (User.IsInRole("Admin") || User.IsInRole("Doctor"))
-    {
-        <a asp-action="Create" class="btn btn-primary">Create New Appointment</a>
-    }
-</p>
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-lg border-info p-3">
+                <table class="table table-hover align-middle">
+                    <thead class="table-info text-center">
+                        <tr>
+                            <th>Appointment Date</th>
+                            <th>Status</th>
+                            <th>Patient</th>
+                            @if (User.IsInRole("Admin") || User.IsInRole("Patient"))
+                            {
+                                <th>Bill Amount</th>
+                                <th>Bill Status</th>
+                            }
+                            <th>Doctors</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var appointment in Model)
+                        {
+                            <tr>
+                                <td class="text-center">
+                                    <span class="fw-bold">@appointment.AppointmentDate.ToString("yyyy-MM-dd HH:mm")</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-info text-dark">@appointment.AppointmentStatus</span>
+                                </td>
+                                <td class="text-center">
+                                    @appointment.Patient.FirstName @appointment.Patient.LastName
+                                </td>
 
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Appointment Date</th>
-            <th>Status</th>
-            <th>Patient</th>
-            @if (User.IsInRole("Admin") || User.IsInRole("Patient"))
-            {
-                <th>Bill Amount</th>
-                <th>Bill Status</th>
-            }
-            <th>Doctors</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var appointment in Model)
-        {
-            <tr>
-                <td>@appointment.AppointmentDate.ToString("yyyy-MM-dd HH:mm")</td>
-                <td>@appointment.AppointmentStatus</td>
-                <td>@appointment.Patient.FirstName @appointment.Patient.LastName</td>
+                                @if (User.IsInRole("Admin") || User.IsInRole("Patient"))
+                                {
+                                    <td class="text-center">
+                                        <span class="text-success fw-bold">$@appointment.BillAmount</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-secondary">@appointment.Billing?.Status</span>
+                                    </td>
+                                }
 
-                @if (User.IsInRole("Admin") || User.IsInRole("Patient"))
-                {
-                    <td>@appointment.BillAmount</td>
-                    <td>@appointment.Billing?.Status</td>
-                }
+                                <td class="text-center">
+                                    <div class="text-primary">
+                                        @foreach (var doctor in appointment.Doctors)
+                                        {
+                                            <span>Dr. @doctor.FirstName @doctor.LastName</span>
 
-                <td>
-                    @foreach (var doctor in appointment.Doctors)
-                    {
-                        <span>@doctor.FirstName @doctor.LastName<br /></span>
-                    }
-                </td>
-                <td>
-                    <div>
-                        <a asp-action="Details" asp-route-id="@appointment.Id" class="btn btn-info">Details</a>
-                    </div>
-                    @if (User.IsInRole("Admin") || User.IsInRole("Doctor"))
-                    {
-                        <div>
-                            <a asp-action="Edit" asp-route-id="@appointment.Id" class="btn btn-warning">Edit</a>
-                        </div>
-                        <div>
-                            <a asp-action="Delete" asp-route-id="@appointment.Id" class="btn btn-danger">Delete</a>
-                        </div>
-                    }
-                </td>
-            </tr>
+                                            <br />
+                                        }
+                                    </div>
+                                </td>
+
+                                <td class="text-center">
+                                    <div class="btn-group">
+                                        <a asp-action="Details" asp-route-id="@appointment.Id" class="btn btn-outline-info btn-sm me-2" title="View Details">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a asp-action="Edit" asp-route-id="@appointment.Id" class="btn btn-outline-warning btn-sm me-2" title="Edit Appointment">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                        @if (User.IsInRole("Admin"))
+                                        {
+                                            <a asp-action="Delete" asp-route-id="@appointment.Id" class="btn btn-outline-danger btn-sm" title="Delete Appointment">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .btn-outline-primary:hover {
+            background-color: #007bff;
+            color: #fff;
         }
-    </tbody>
-</table>
+
+        .btn-outline-warning:hover {
+            background-color: #ffc107;
+            color: #fff;
+        }
+
+        .btn-outline-danger:hover {
+            background-color: #dc3545;
+            color: #fff;
+        }
+
+        .btn-outline-info:hover {
+            background-color: #17a2b8;
+            color: #fff;
+        }
+
+        .table-info {
+            background-color: #e9f5ff;
+        }
+
+        .badge {
+            padding: 8px 12px;
+            font-size: 0.9rem;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        .fw-bold {
+            font-weight: 600;
+        }
+    </style>
+}

@@ -1,0 +1,21 @@
+﻿@model Hospital_Managment_System.Models.LabTest
+
+@{
+    ViewData["Title"] = "Delete Lab Test";
+}
+
+<h2>Delete Lab Test</h2>
+
+<div class="alert alert-danger">
+    <h4>Are you sure you want to delete this Lab Test?</h4>
+    <p><strong>Test Name:</strong> @Model.TestName</p>
+    <p><strong>Test Result:</strong> @Model.TestResult</p>
+    <p><strong>Test Date:</strong> @Model.TestDate.ToString("yyyy-MM-dd")</p>
+    <p><strong>Completed:</strong> @(Model.IsCompleted ? "Yes" : "No")</p>
+</div>
+
+<form asp-action="DeleteConfirmed" method="post">
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-danger">Delete</button>
+    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+</form>

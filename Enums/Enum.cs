@@ -106,4 +106,41 @@
         Female = 2,
         Other = 3
     }
+
+    public enum LabTestName
+    {
+        CompleteBloodCount = 1,         // CBC
+        BasicMetabolicPanel = 2,        // BMP
+        ComprehensiveMetabolicPanel = 3, // CMP
+        LipidPanel = 4,                 // Cholesterol Test
+        LiverFunctionTest = 5,          // LFT
+        ThyroidFunctionTest = 6,        // TFT
+        HemoglobinA1c = 7,              // Diabetes Test
+        Urinalysis = 8,                 // UA
+        BloodGlucose = 9,               // Glucose Test
+        ProthrombinTime = 10,           // PT/INR
+        DDimers = 11,                   // D-Dimer Test
+        CReactiveProtein = 12,          // CRP
+        RheumatoidFactor = 13,          // RF Test
+        ErythrocyteSedimentationRate = 14, // ESR Test
+        IronStudies = 15,               // Ferritin, Iron Levels
+        VitaminDTest = 16,              // 25-hydroxy Vitamin D
+        VitaminB12Test = 17,            // B12 Levels
+        ElectrolytePanel = 18,          // Sodium, Potassium, etc.
+        ArterialBloodGas = 19,          // ABG Test
+        BloodUreaNitrogen = 20          // BUN Test
+    }
+
+    public enum PaymentMethodType
+    {
+        Cash = 1,
+        CreditCard = 2,
+        DebitCard = 3,
+        Insurance = 4,
+        BankTransfer = 5,
+        MobilePayment = 6,  // Such as PayPal, Apple Pay, Google Pay
+        Cheque = 7
+    }
+
+
 }

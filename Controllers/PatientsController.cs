@@ -177,7 +177,9 @@ namespace Hospital_Managment_System.Controllers
 
             var patient = await _context.Patients
                 .Include(p => p.User)
+                .Include(p => p.PrimaryDoctor)
                 .FirstOrDefaultAsync(p => p.Id == id);
+
             if (patient == null)
             {
                 return NotFound();
@@ -199,8 +201,8 @@ namespace Hospital_Managment_System.Controllers
             // Populate Doctors dropdown
             ViewData["PrimaryDoctorId"] = new SelectList(_context.Doctors, "Id", "FirstName", patient.PrimaryDoctorId);
 
-            // Populate Gender enum
-            ViewData["Gender"] = new SelectList(Enum.GetValues(typeof(Gender)).Cast<Gender>(), patient.Gender);
+            // Populate Gender enum, handle null gender
+            ViewData["Gender"] = new SelectList(Enum.GetValues(typeof(Gender)).Cast<Gender>(), patient.Gender ?? Gender.Male); // Default to Male if null
 
             // Initialize ViewModel
             var model = new PatientViewModel
@@ -209,14 +211,13 @@ namespace Hospital_Managment_System.Controllers
                 FirstName = patient.FirstName,
                 LastName = patient.LastName,
                 DateOfBirth = patient.DateOfBirth ?? default(DateTime),
-                Gender = patient.Gender ?? default(Gender),
+                Gender = patient.Gender ?? Gender.Male,  // Default if gender is null
                 PhoneNumber = patient.PhoneNumber,
                 Email = patient.Email,
                 Address = patient.Address,
                 EmergencyContact = patient.EmergencyContact,
                 DateTimeOfAdmission = patient.DateTimeOfAdmission,
-                PrimaryDoctorId = patient.PrimaryDoctorId,
-                Password = null // Do not allow password changes here
+                PrimaryDoctorId = patient.PrimaryDoctorId
             };
 
             return View(model);
@@ -244,7 +245,7 @@ namespace Hospital_Managment_System.Controllers
                 }
             }
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
                 try
                 {
@@ -321,9 +322,16 @@ namespace Hospital_Managment_System.Controllers
             return View(model);
         }
 
+        private void PopulateDropdowns(int? departmentId, int? primaryDoctorId, Gender? gender)
+        {
+            ViewData["DepartmentId"] = new SelectList(_context.Departments, "Id", "Name", departmentId);
+            ViewData["PrimaryDoctorId"] = new SelectList(_context.Doctors, "Id", "FirstName", primaryDoctorId);
+            ViewData["Gender"] = new SelectList(Enum.GetValues(typeof(Gender)).Cast<Gender>(), gender);
+        }
+
         private bool PatientExists(int id)
         {
-            return _context.Patients.Any(_context => _context.Id == id);
+            return _context.Patients.Any(p => p.Id == id);
         }
 
         // GET: Patients/Delete/5
@@ -379,9 +387,11 @@ namespace Hospital_Managment_System.Controllers
                 return NotFound();
             }
 
+            // Fetch patient details including the Primary Doctor and Department (if applicable)
             var patient = await _context.Patients
                 .Include(p => p.User)
                 .Include(p => p.PrimaryDoctor)
+                .ThenInclude(d => d.Department)  // Ensure the Department is included if the doctor has one
                 .FirstOrDefaultAsync(p => p.UserId == currentUser.Id);
 
             if (patient == null)
@@ -389,7 +399,8 @@ namespace Hospital_Managment_System.Controllers
                 return NotFound();
             }
 
-            return View("PatientDetailsMore", patient); // Updated view name
+            // If the patient does not have a PrimaryDoctor, handle this gracefully in the view
+            return View("PatientDetailsMore", patient);
         }
     }
 }

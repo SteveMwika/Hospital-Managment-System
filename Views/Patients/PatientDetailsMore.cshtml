@@ -1,34 +1,73 @@
-﻿@model Hospital_Managment_System.Models.Patient
+﻿@model Hospital_Managment_System.Models.ViewModels.AppointmentCreateViewModel
 
-<h1 class="text-primary">My Details</h1>
+@{
+    ViewData["Title"] = "My Details and Create Appointment";
+}
 
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
-        <h5 class="card-title">Patient Information</h5>
-        <p><strong>Full Name:</strong> @Model.FirstName @Model.LastName</p>
-        <p><strong>Email:</strong> @Model.Email</p>
-        <p><strong>Phone:</strong> @Model.PhoneNumber</p>
-        <p><strong>Date of Birth:</strong> @(Model.DateOfBirth?.ToShortDateString())</p>
-        <p><strong>Address:</strong> @Model.Address</p>
+<div class="container settings-page">
+    <!-- Existing Patient Details Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-primary">My Details</h2>
+        <div class="d-flex align-items-center">
+            @if (Model.PatientId.HasValue)
+            {
+                    <a asp-controller="Doctors" asp-action="Details" asp-route-id="@Model.SelectedDoctorId" class="btn btn-primary btn-lg me-3">
+                        <i class="bi bi-person-badge"></i> My Doctor
+                    </a>
+            }
 
-        @if (Model.PrimaryDoctor != null)
-        {
-            <div class="mt-4">
-                <h5 class="text-success">Primary Doctor</h5>
-                <p><strong>Doctor Name:</strong> @Model.PrimaryDoctor.FirstName @Model.PrimaryDoctor.LastName</p>
-                <p><strong>Specialization:</strong> @Model.PrimaryDoctor.Specialization</p>
-                <p><strong>Department:</strong> @Model.PrimaryDoctor.Department.Name</p>
-                <!-- Button to view doctor's details -->
-                <a asp-controller="Doctors" asp-action="Details" asp-route-id="@Model.PrimaryDoctor.Id" class="btn btn-info mt-2">My Doctor</a>
+            <!-- Edit button for patient with gear icon -->
+            <a asp-controller="Patients" asp-action="Edit" asp-route-id="@Model.PatientId" class="btn btn-secondary btn-lg" title="Edit Patient Information">
+                <i class="bi bi-gear"></i>
+            </a>
+        </div>
+    </div>
+    <hr />
+
+    <!-- Existing Patient Information Display -->
+    <!-- ... (Your existing patient details code) ... -->
+
+    <hr />
+
+    <!-- Appointment Creation Form for Patients -->
+    <h3 class="text-primary">Create a New Appointment</h3>
+    <div class="card shadow-sm border-primary p-4 mb-4">
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="All" class="text-danger"></div>
+
+            <!-- Appointment Date -->
+            <div class="form-group mb-3">
+                <label asp-for="AppointmentDate" class="form-label">Appointment Date</label>
+                <input asp-for="AppointmentDate" class="form-control" type="datetime-local" required />
+                <span asp-validation-for="AppointmentDate" class="text-danger"></span>
             </div>
-        }
-        else
-        {
-            <p class="text-danger mt-4"><strong>You don't have a primary doctor assigned.</strong></p>
-        }
+
+            <!-- Doctor Selection -->
+            <div class="form-group mb-3">
+                <label asp-for="SelectedDoctorId" class="form-label">Select Doctor</label>
+                <select asp-for="SelectedDoctorId" class="form-select" required>
+                    <option value="">-- Select Doctor --</option>
+                    @foreach (var doctor in Model.DoctorList)
+                    {
+                            <option value="@doctor.Value">@doctor.Text</option>
+                    }
+                </select>
+                <span asp-validation-for="SelectedDoctorId" class="text-danger"></span>
+            </div>
+
+            <!-- Hidden PatientId -->
+            <input type="hidden" asp-for="PatientId" />
+
+            <!-- Submit Button -->
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary">Create Appointment</button>
+            </div>
+        </form>
     </div>
 </div>
 
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }

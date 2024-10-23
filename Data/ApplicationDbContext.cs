@@ -182,6 +182,9 @@ namespace Hospital_Managment_System.Data
                       .HasConversion<int>();
                 entity.Property(a => a.BillAmount)
                       .HasColumnType("float");
+                entity.Property(a => a.Feedback)
+                      .HasMaxLength(200);
+
                 // Removed BillStatus string property
                 entity.Property(a => a.DoctorNotification)
                       .IsRequired();
@@ -225,9 +228,17 @@ namespace Hospital_Managment_System.Data
                       .IsRequired()
                       .HasColumnType("decimal(18,2)");
                 entity.Property(b => b.Status)
-                      .HasConversion<int>();
+                      .IsRequired()
+                      .HasConversion<int>(); // Enum stored as int
+                entity.Property(b => b.PaymentMethod)
+                      .IsRequired()
+                      .HasConversion<int>(); // Enum stored as int
                 entity.Property(b => b.BillingDate)
                       .IsRequired();
+                entity.Property(b => b.PaymentDate)
+                      .HasColumnType("Date");
+                entity.Property(b => b.DueDate)
+                      .HasColumnType("Date");
 
                 // Relationship with Appointment is configured in Appointment
             });
@@ -263,23 +274,24 @@ namespace Hospital_Managment_System.Data
             });
 
             // Configure LabTest Entity
+            // Configure LabTest Entity
             modelBuilder.Entity<LabTest>(entity =>
             {
                 entity.HasKey(l => l.Id);
                 entity.Property(l => l.TestName)
                       .IsRequired()
-                      .HasMaxLength(200);
-                entity.Property(l => l.Result)
-                      .HasMaxLength(500);
+                      .HasConversion<int>();  // Enum is stored as an integer
+                entity.Property(l => l.TestResult)
+                      .HasMaxLength(500);  // Limit the result text size
                 entity.Property(l => l.TestDate)
-                      .IsRequired();
+                      .IsRequired();  // Date when the test was conducted
                 entity.Property(l => l.IsCompleted)
-                      .IsRequired();
+                      .IsRequired();  // Ensure the test completion is marked
 
                 entity.HasOne(l => l.Appointment)
                       .WithMany(a => a.LabTests)
                       .HasForeignKey(l => l.AppointmentId)
-                      .OnDelete(DeleteBehavior.Cascade);
+                      .OnDelete(DeleteBehavior.Restrict);  // Cascade delete with appointment
             });
 
             // Configure MedicineInventoryLog Entity

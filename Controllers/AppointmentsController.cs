@@ -1,6 +1,8 @@
 ﻿using Hospital_Managment_System.Data;
 using Hospital_Managment_System.Enums;
 using Hospital_Managment_System.Models;
+using Hospital_Managment_System.Models.ViewModels;
+using Hospital_Managment_System.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -57,13 +59,16 @@ namespace Hospital_Managment_System.Controllers
         }
 
         // GET: Appointments/Details/5
-        [AllowAnonymous]
+        [Authorize(Roles = "Admin, Doctor, Patient")] // Allow only Admin, Doctor, and Patient to view details
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
             {
                 return BadRequest();
             }
+
+            // Find the current user's identity
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             var appointment = await _context.Appointments
                 .Include(a => a.Patient)
@@ -72,7 +77,6 @@ namespace Hospital_Managment_System.Controllers
                 .Include(a => a.Prescriptions)
                     .ThenInclude(p => p.Medicine)
                 .Include(a => a.LabTests)
-                .AsNoTracking()
                 .FirstOrDefaultAsync(m => m.Id == id);
 
             if (appointment == null)
@@ -80,45 +84,79 @@ namespace Hospital_Managment_System.Controllers
                 return NotFound();
             }
 
-            return View(appointment);
+            // Check if the current user is an Admin
+            if (User.IsInRole("Admin"))
+            {
+                return View(appointment); // Admin can see everything
+            }
+
+            // Check if the current user is a Doctor
+            if (User.IsInRole("Doctor"))
+            {
+                var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.UserId == currentUserId);
+                if (doctor == null || !appointment.Doctors.Any(d => d.Id == doctor.Id))
+                {
+                    return Forbid(); // Ensure that the doctor is assigned to this appointment
+                }
+                return View(appointment); // Doctor can see everything except billing information
+            }
+
+            // Check if the current user is a Patient
+            if (User.IsInRole("Patient"))
+            {
+                var patient = await _context.Patients.FirstOrDefaultAsync(p => p.UserId == currentUserId);
+                if (patient == null || appointment.PatientId != patient.Id)
+                {
+                    return Forbid(); // Ensure that the appointment belongs to the logged-in patient
+                }
+                return View(appointment); // Patient can see everything including billing
+            }
+
+            return Forbid(); // Default forbid if no valid role matches
         }
 
+
         // GET: Appointments/Create
-        [Authorize(Roles = "Doctor, Patient")]
+        [Authorize(Roles = "Admin,Doctor,Patient")]
         public async Task<IActionResult> Create()
         {
             var currentUser = await _userManager.GetUserAsync(User);
+            var currentUserId = currentUser.Id;
 
             if (User.IsInRole("Doctor"))
             {
-                // If the current user is a Doctor, they can only create an appointment for themselves
-                var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.UserId == currentUser.Id);
+                var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.UserId == currentUserId);
                 if (doctor == null)
                 {
-                    return Forbid(); // Ensure that the doctor can only create their own appointments
+                    ModelState.AddModelError("", "Doctor not found.");
+                    return View();
                 }
 
-                // Populate Patients dropdown (Only patients of the doctor can be selected)
-                var patients = await _context.Patients.Where(p => p.PrimaryDoctorId == doctor.Id).ToListAsync();
-                ViewData["PatientId"] = new SelectList(patients, "Id", "Email"); // Display email for selection
+                // Show only the patients assigned to this doctor
+                ViewBag.PatientId = new SelectList(_context.Patients
+                    .Where(p => p.PrimaryDoctorId == doctor.Id)
+                    .Select(p => new { p.Id, FullName = p.FirstName + " " + p.LastName }), "Id", "FullName");
+            }
+            else if (User.IsInRole("Admin"))
+            {
+                // Admin selects both Patient and Doctor from dropdowns
+                ViewBag.PatientId = new SelectList(_context.Patients
+                    .Select(p => new { p.Id, FullName = p.FirstName + " " + p.LastName }), "Id", "FullName");
+
+                ViewBag.DoctorId = new SelectList(_context.Doctors
+                    .Select(d => new { d.Id, FullName = d.FirstName + " " + d.LastName }), "Id", "FullName");
             }
             else if (User.IsInRole("Patient"))
             {
-                // If the current user is a Patient, they can only create an appointment for themselves
-                var patient = await _context.Patients.FirstOrDefaultAsync(p => p.UserId == currentUser.Id);
+                var patient = await _context.Patients.FirstOrDefaultAsync(p => p.UserId == currentUserId);
                 if (patient == null)
                 {
-                    return Forbid(); // Ensure that the patient can only create their own appointments
+                    ModelState.AddModelError("", "Patient not found.");
+                    return View();
                 }
 
-                // Populate Doctors dropdown (Only the patient's primary doctor can be selected)
-                var doctors = await _context.Doctors.Where(d => d.Id == patient.PrimaryDoctorId).ToListAsync();
-                ViewData["DoctorIds"] = new SelectList(doctors, "Id", "Email");
+                // PatientId is automatically assigned, no dropdown needed
             }
-
-            // Populate AppointmentStatus enum
-            ViewData["AppointmentStatus"] = new SelectList(Enum.GetValues(typeof(AppointmentStatus)).Cast<AppointmentStatus>());
-            ViewData["FeedbackStatus"] = new SelectList(Enum.GetValues(typeof(FeedbackStatus)).Cast<FeedbackStatus>());
 
             return View();
         }
@@ -126,68 +164,92 @@ namespace Hospital_Managment_System.Controllers
         // POST: Appointments/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Doctor, Patient")]
-        public async Task<IActionResult> Create(Appointment appointment, int[] DoctorIds)
+        [Authorize(Roles = "Admin,Doctor,Patient")]
+        public async Task<IActionResult> Create([Bind("AppointmentDate,AppointmentStatus")] Appointment appointment)
         {
             var currentUser = await _userManager.GetUserAsync(User);
-            var isDoctor = User.IsInRole("Doctor");
-            var isPatient = User.IsInRole("Patient");
+            var currentUserId = currentUser.Id;
 
-            if (isDoctor)
+            if (ModelState.IsValid)
             {
-                // Ensure the doctor can only create an appointment for themselves
-                var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.UserId == currentUser.Id);
-                if (doctor == null)
+                // Assign BillStatus and BillAmount
+                appointment.BillStatus = BillStatus.Unpaid.ToString();
+                appointment.BillAmount = new Random().Next(50, 201); // $50 to $200
+
+                if (User.IsInRole("Doctor"))
                 {
-                    return Forbid();
+                    var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.UserId == currentUserId);
+                    if (doctor == null)
+                    {
+                        ModelState.AddModelError("", "Doctor not found.");
+                        // Repopulate ViewBag.PatientId before returning view
+                        ViewBag.PatientId = new SelectList(_context.Patients
+                            .Where(p => p.PrimaryDoctorId == doctor.Id)
+                            .Select(p => new { p.Id, FullName = p.FirstName + " " + p.LastName }), "Id", "FullName", appointment.PatientId);
+                        return View(appointment);
+                    }
+                    appointment.DoctorId = doctor.Id;
+                }
+                else if (User.IsInRole("Patient"))
+                {
+                    var patient = await _context.Patients.FirstOrDefaultAsync(p => p.UserId == currentUserId);
+                    if (patient == null)
+                    {
+                        ModelState.AddModelError("", "Patient not found.");
+                        return View(appointment);
+                    }
+                    appointment.PatientId = patient.Id;
+                }
+                else if (User.IsInRole("Admin"))
+                {
+                    // Admin selects both DoctorId and PatientId from dropdowns
+                    // They are already bound from the form
+                    // Validate if DoctorId is selected
+                    if (appointment.DoctorId == 0)
+                    {
+                        ModelState.AddModelError("DoctorId", "Doctor is required.");
+                        // Repopulate ViewBags
+                        ViewBag.PatientId = new SelectList(_context.Patients
+                            .Select(p => new { p.Id, FullName = p.FirstName + " " + p.LastName }), "Id", "FullName", appointment.PatientId);
+
+                        ViewBag.DoctorId = new SelectList(_context.Doctors
+                            .Select(d => new { d.Id, FullName = d.FirstName + " " + d.LastName }), "Id", "FullName", appointment.DoctorId);
+                        return View(appointment);
+                    }
                 }
 
-                // Ensure that the doctor is assigned to the appointment
-                appointment.Doctors = new List<Doctor> { doctor };
-            }
-            else if (isPatient)
-            {
-                // Ensure the patient can only create an appointment for themselves
-                var patient = await _context.Patients.FirstOrDefaultAsync(p => p.UserId == currentUser.Id);
-                if (patient == null || patient.Id != appointment.PatientId)
-                {
-                    return Forbid();
-                }
-
-                // Ensure the primary doctor is assigned
-                var primaryDoctor = await _context.Doctors.FindAsync(patient.PrimaryDoctorId);
-                if (primaryDoctor != null)
-                {
-                    appointment.Doctors = new List<Doctor> { primaryDoctor };
-                }
-            }
-
-            // Automatically generate a random bill amount between 100 and 300
-            var random = new Random();
-            appointment.BillAmount = (float)Math.Round(random.NextDouble() * (301 - 100) + 100, 2);
-
-
-            if (!ModelState.IsValid)
-            {
                 _context.Add(appointment);
                 await _context.SaveChangesAsync();
-
-                // Redirect to the details page of the newly created appointment
-                return RedirectToAction(nameof(Details), new { id = appointment.Id });
+                return RedirectToAction(nameof(Index));
             }
 
-            // Repopulate dropdowns in case of error
-            ViewData["PatientId"] = new SelectList(await _context.Patients.ToListAsync(), "Id", "Email", appointment.PatientId);
-            ViewData["DoctorIds"] = new MultiSelectList(await _context.Doctors.ToListAsync(), "Id", "Email", DoctorIds);
-            ViewData["AppointmentStatus"] = new SelectList(Enum.GetValues(typeof(AppointmentStatus)).Cast<AppointmentStatus>(), appointment.AppointmentStatus);
-            ViewData["FeedbackStatus"] = new SelectList(Enum.GetValues(typeof(FeedbackStatus)).Cast<FeedbackStatus>(), appointment.FeedbackStatus);
+            // If ModelState is invalid, repopulate ViewBag
+            if (User.IsInRole("Doctor"))
+            {
+                var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.UserId == currentUserId);
+                ViewBag.PatientId = new SelectList(_context.Patients
+                    .Where(p => p.PrimaryDoctorId == doctor.Id)
+                    .Select(p => new { p.Id, FullName = p.FirstName + " " + p.LastName }), "Id", "FullName", appointment.PatientId);
+            }
+            else if (User.IsInRole("Admin"))
+            {
+                ViewBag.PatientId = new SelectList(_context.Patients
+                    .Select(p => new { p.Id, FullName = p.FirstName + " " + p.LastName }), "Id", "FullName", appointment.PatientId);
+
+                ViewBag.DoctorId = new SelectList(_context.Doctors
+                    .Select(d => new { d.Id, FullName = d.FirstName + " " + d.LastName }), "Id", "FullName", appointment.DoctorId);
+            }
 
             return View(appointment);
         }
 
 
 
+
+
+
         // GET: Appointments/Edit/5
+        [Authorize(Roles = "Doctor, Patient")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -197,6 +259,7 @@ namespace Hospital_Managment_System.Controllers
 
             var appointment = await _context.Appointments
                 .Include(a => a.Doctors)
+                .Include(a => a.Patient)
                 .FirstOrDefaultAsync(a => a.Id == id);
 
             if (appointment == null)
@@ -204,23 +267,34 @@ namespace Hospital_Managment_System.Controllers
                 return NotFound();
             }
 
-            // Get the doctors already assigned to the appointment
-            var assignedDoctors = appointment.Doctors.Select(d => d.Id).ToList();
+            var currentUser = await _userManager.GetUserAsync(User);
+            var isDoctor = User.IsInRole("Doctor");
+            var isPatient = User.IsInRole("Patient");
 
-            // Get the unassigned doctors (those not already assigned to the appointment)
-            var unassignedDoctors = await _context.Doctors
-                .Where(d => !assignedDoctors.Contains(d.Id))
-                .OrderBy(d => d.FirstName).ThenBy(d => d.LastName) // Sort alphabetically
-                .ToListAsync();
+            if (isDoctor)
+            {
+                // Doctor can view appointment details, patient name, and assigned doctors
+                var assignedDoctors = appointment.Doctors.Select(d => d.Id).ToList();
+                var unassignedDoctors = await _context.Doctors
+                    .Where(d => !assignedDoctors.Contains(d.Id))
+                    .OrderBy(d => d.FirstName).ThenBy(d => d.LastName)
+                    .ToListAsync();
 
-            // Populate the view data
-            ViewData["PatientId"] = new SelectList(await _context.Patients.ToListAsync(), "Id", "Email", appointment.PatientId);
+                ViewBag.AssignedDoctors = appointment.Doctors;
+                ViewBag.UnassignedDoctors = unassignedDoctors;
+                ViewBag.PatientFullName = $"{appointment.Patient.FirstName} {appointment.Patient.LastName}";
 
-            ViewBag.AssignedDoctors = appointment.Doctors; // Pass assigned doctors to the view
-            ViewBag.UnassignedDoctors = unassignedDoctors; // Pass unassigned doctors to the view
+                // Populate appointment status for doctors
+                ViewData["AppointmentStatus"] = new SelectList(Enum.GetValues(typeof(AppointmentStatus)).Cast<AppointmentStatus>(), appointment.AppointmentStatus);
+            }
+            else if (isPatient)
+            {
+                // Patient can view doctor name, appointment date, and feedback fields
+                ViewBag.DoctorFullName = $"{appointment.Doctors.FirstOrDefault()?.FirstName} {appointment.Doctors.FirstOrDefault()?.LastName}";
 
-            ViewData["AppointmentStatus"] = new SelectList(Enum.GetValues(typeof(AppointmentStatus)).Cast<AppointmentStatus>(), appointment.AppointmentStatus);
-            ViewData["FeedbackStatus"] = new SelectList(Enum.GetValues(typeof(FeedbackStatus)).Cast<FeedbackStatus>(), appointment.FeedbackStatus);
+                // Populate feedback status for patients
+                ViewData["FeedbackStatus"] = new SelectList(Enum.GetValues(typeof(FeedbackStatus)).Cast<FeedbackStatus>(), appointment.FeedbackStatus);
+            }
 
             return View(appointment);
         }
@@ -228,14 +302,19 @@ namespace Hospital_Managment_System.Controllers
         // POST: Appointments/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Appointment appointment, int[] DoctorIds)
+        [Authorize(Roles = "Doctor, Patient")]
+        public async Task<IActionResult> Edit(int id, Appointment appointment, string feedbackInput, int[] DoctorIds)
         {
             if (id != appointment.Id)
             {
                 return BadRequest();
             }
 
-            if (ModelState.IsValid)
+            var currentUser = await _userManager.GetUserAsync(User);
+            var isDoctor = User.IsInRole("Doctor");
+            var isPatient = User.IsInRole("Patient");
+
+            if (!ModelState.IsValid)
             {
                 try
                 {
@@ -248,27 +327,41 @@ namespace Hospital_Managment_System.Controllers
                         return NotFound();
                     }
 
-                    // Update basic appointment details
-                    existingAppointment.AppointmentDate = appointment.AppointmentDate;
-                    existingAppointment.AppointmentStatus = appointment.AppointmentStatus;
-                    existingAppointment.BillAmount = appointment.BillAmount;
-                    existingAppointment.FeedbackStatus = appointment.FeedbackStatus;
-                    existingAppointment.PatientNotification = appointment.PatientNotification;
-                    existingAppointment.DoctorNotification = appointment.DoctorNotification;
-
-                    // Remove all current doctors
-                    existingAppointment.Doctors.Clear();
-
-                    // Re-assign selected doctors
-                    if (DoctorIds != null && DoctorIds.Length > 0)
+                    if (isDoctor)
                     {
-                        foreach (var doctorId in DoctorIds)
+                        // Doctor updates appointment status and doctors
+                        existingAppointment.AppointmentDate = appointment.AppointmentDate;
+                        existingAppointment.AppointmentStatus = appointment.AppointmentStatus;
+
+                        // Remove all current doctors
+                        existingAppointment.Doctors.Clear();
+
+                        // Re-assign selected doctors
+                        if (DoctorIds != null && DoctorIds.Length > 0)
                         {
-                            var doctor = await _context.Doctors.FindAsync(doctorId);
-                            if (doctor != null)
+                            foreach (var doctorId in DoctorIds)
                             {
-                                existingAppointment.Doctors.Add(doctor);
+                                var doctor = await _context.Doctors.FindAsync(doctorId);
+                                if (doctor != null)
+                                {
+                                    existingAppointment.Doctors.Add(doctor);
+                                }
                             }
+                        }
+                    }
+                    else if (isPatient)
+                    {
+                        // Patient updates feedback and feedback status
+                        existingAppointment.Feedback = feedbackInput;
+
+                        // Update FeedbackStatus based on whether feedback is provided or not
+                        if (!string.IsNullOrWhiteSpace(feedbackInput))
+                        {
+                            existingAppointment.FeedbackStatus = FeedbackStatus.Given;
+                        }
+                        else
+                        {
+                            existingAppointment.FeedbackStatus = FeedbackStatus.Pending;
                         }
                     }
 
@@ -289,14 +382,26 @@ namespace Hospital_Managment_System.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            // Repopulate dropdowns in case of error
-            ViewData["PatientId"] = new SelectList(await _context.Patients.ToListAsync(), "Id", "Email", appointment.PatientId);
-            ViewData["DoctorIds"] = new MultiSelectList(await _context.Doctors.ToListAsync(), "Id", "Email", DoctorIds);
-            ViewData["AppointmentStatus"] = new SelectList(Enum.GetValues(typeof(AppointmentStatus)).Cast<AppointmentStatus>(), appointment.AppointmentStatus);
-            ViewData["FeedbackStatus"] = new SelectList(Enum.GetValues(typeof(FeedbackStatus)).Cast<FeedbackStatus>(), appointment.FeedbackStatus);
+            // Repopulate data in case of error
+            if (isDoctor)
+            {
+                var assignedDoctors = appointment.Doctors.Select(d => d.Id).ToList();
+                var unassignedDoctors = await _context.Doctors
+                    .Where(d => !assignedDoctors.Contains(d.Id))
+                    .OrderBy(d => d.FirstName).ThenBy(d => d.LastName)
+                    .ToListAsync();
+
+                ViewBag.AssignedDoctors = appointment.Doctors;
+                ViewBag.UnassignedDoctors = unassignedDoctors;
+            }
+            else if (isPatient)
+            {
+                ViewBag.DoctorFullName = $"{appointment.Doctors.FirstOrDefault()?.FirstName} {appointment.Doctors.FirstOrDefault()?.LastName}";
+            }
 
             return View(appointment);
         }
+
 
         // GET: Appointments/Delete/5
         public async Task<IActionResult> Delete(int? id)
