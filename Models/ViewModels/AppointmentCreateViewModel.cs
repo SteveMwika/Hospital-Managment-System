@@ -10,32 +10,49 @@ namespace Hospital_Managment_System.Models.ViewModels
 {
     public class AppointmentCreateViewModel
     {
-        // Common Properties
         [Required]
+        [DataType(DataType.DateTime)]
+        [Display(Name = "Appointment Date")]
         public DateTime AppointmentDate { get; set; }
 
-        // For Doctors
+        [Required]
+        [Display(Name = "Appointment Status")]
+        public AppointmentStatus AppointmentStatus { get; set; }
+
+        [Required]
+        [Display(Name = "Bill Status")]
+        public BillStatus BillStatus { get; set; }
+
+        [Range(0, double.MaxValue, ErrorMessage = "Bill amount must be non-negative.")]
+        [Display(Name = "Bill Amount")]
+        public float BillAmount { get; set; }
+
+        // Admins can select patient
+        [Display(Name = "Patient")]
+        public int? SelectedPatientId { get; set; }
+
+        // Admins and Doctors can select multiple doctors
+        [Display(Name = "Doctors")]
+        public List<int> SelectedDoctorIds { get; set; } = new List<int>();
+
+        // Dropdown lists
+        public List<SelectListItem> DoctorsList { get; set; }
+        public List<SelectListItem> PatientsList { get; set; }
+
+        // For Patients, auto-assign
         public int? PatientId { get; set; }
 
-        // For Patients
-        public string PatientFullName { get; set; }
+        // Select lists for AppointmentStatus and BillStatus
+        public IEnumerable<SelectListItem> AppointmentStatusList => Enum.GetValues(typeof(AppointmentStatus)).Cast<AppointmentStatus>().Select(status => new SelectListItem
+        {
+            Value = status.ToString(),
+            Text = status.ToString()
+        });
 
-        // Doctor Selection
-        [Required]
-        [Display(Name = "Doctor")]
-        public int SelectedDoctorId { get; set; }
-        public List<SelectListItem> DoctorList { get; set; }
-
-        // Enum Selections
-        public AppointmentStatus AppointmentStatus { get; set; }
-        public List<SelectListItem> AppointmentStatusList { get; set; }
-
-        public BillStatus BillStatus { get; set; }
-        public List<SelectListItem> BillStatusList { get; set; }
-
-        // Notifications and Feedback
-        public int PatientNotification { get; set; }
-        public int DoctorNotification { get; set; }
-        public FeedbackStatus FeedbackStatus { get; set; }
+        public IEnumerable<SelectListItem> BillStatusList => Enum.GetValues(typeof(BillStatus)).Cast<BillStatus>().Select(status => new SelectListItem
+        {
+            Value = status.ToString(),
+            Text = status.ToString()
+        });
     }
 }

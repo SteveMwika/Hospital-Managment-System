@@ -1,73 +1,61 @@
-﻿@model Hospital_Managment_System.Models.ViewModels.AppointmentCreateViewModel
+﻿@model Hospital_Managment_System.Models.Patient
 
 @{
-    ViewData["Title"] = "My Details and Create Appointment";
+    ViewData["Title"] = "Patient Details";
 }
 
-<div class="container settings-page">
-    <!-- Existing Patient Details Section -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="text-primary">My Details</h2>
-        <div class="d-flex align-items-center">
-            @if (Model.PatientId.HasValue)
-            {
-                    <a asp-controller="Doctors" asp-action="Details" asp-route-id="@Model.SelectedDoctorId" class="btn btn-primary btn-lg me-3">
-                        <i class="bi bi-person-badge"></i> My Doctor
-                    </a>
-            }
+<h2 class="text-center">Patient Details</h2>
 
-            <!-- Edit button for patient with gear icon -->
-            <a asp-controller="Patients" asp-action="Edit" asp-route-id="@Model.PatientId" class="btn btn-secondary btn-lg" title="Edit Patient Information">
-                <i class="bi bi-gear"></i>
-            </a>
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4>Personal Information</h4>
+        </div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-3">First Name</dt>
+                <dd class="col-sm-9">@Model.FirstName</dd>
+
+                <dt class="col-sm-3">Last Name</dt>
+                <dd class="col-sm-9">@Model.LastName</dd>
+
+                <dt class="col-sm-3">Date of Birth</dt>
+                <dd class="col-sm-9">
+                    @Model.DateOfBirth?.ToString("yyyy-MM-dd")"
+                </dd>
+
+                <dt class="col-sm-3">Gender</dt>
+                <dd class="col-sm-9">@Model.Gender?.ToString() </dd>
+
+                <dt class="col-sm-3">Phone Number</dt>
+                <dd class="col-sm-9">@Model.PhoneNumber</dd>
+
+                <dt class="col-sm-3">Email</dt>
+                <dd class="col-sm-9">@Model.Email</dd>
+
+                <dt class="col-sm-3">Address</dt>
+                <dd class="col-sm-9">@Model.Address</dd>
+
+                <dt class="col-sm-3">Emergency Contact</dt>
+                <dd class="col-sm-9">@Model.EmergencyContact</dd>
+
+                <dt class="col-sm-3">Date of Admission</dt>
+                <dd class="col-sm-9">
+                    @Model.DateTimeOfAdmission?.ToString("yyyy-MM-dd HH:mm")
+                </dd>
+
+                <dt class="col-sm-3">Primary Doctor</dt>
+                <dd class="col-sm-9">
+                    @if (Model.PrimaryDoctor != null)
+                    {
+                        <span>Dr. @Model.PrimaryDoctor.FirstName @Model.PrimaryDoctor.LastName</span>
+                    }
+                    else
+                    {
+                        <span>No Primary Doctor Assigned</span>
+                    }
+                </dd>
+            </dl>
         </div>
     </div>
-    <hr />
-
-    <!-- Existing Patient Information Display -->
-    <!-- ... (Your existing patient details code) ... -->
-
-    <hr />
-
-    <!-- Appointment Creation Form for Patients -->
-    <h3 class="text-primary">Create a New Appointment</h3>
-    <div class="card shadow-sm border-primary p-4 mb-4">
-        <form asp-action="Create" method="post">
-            <div asp-validation-summary="All" class="text-danger"></div>
-
-            <!-- Appointment Date -->
-            <div class="form-group mb-3">
-                <label asp-for="AppointmentDate" class="form-label">Appointment Date</label>
-                <input asp-for="AppointmentDate" class="form-control" type="datetime-local" required />
-                <span asp-validation-for="AppointmentDate" class="text-danger"></span>
-            </div>
-
-            <!-- Doctor Selection -->
-            <div class="form-group mb-3">
-                <label asp-for="SelectedDoctorId" class="form-label">Select Doctor</label>
-                <select asp-for="SelectedDoctorId" class="form-select" required>
-                    <option value="">-- Select Doctor --</option>
-                    @foreach (var doctor in Model.DoctorList)
-                    {
-                            <option value="@doctor.Value">@doctor.Text</option>
-                    }
-                </select>
-                <span asp-validation-for="SelectedDoctorId" class="text-danger"></span>
-            </div>
-
-            <!-- Hidden PatientId -->
-            <input type="hidden" asp-for="PatientId" />
-
-            <!-- Submit Button -->
-            <div class="d-grid">
-                <button type="submit" class="btn btn-primary">Create Appointment</button>
-            </div>
-        </form>
-    </div>
 </div>
-
-@section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
-}

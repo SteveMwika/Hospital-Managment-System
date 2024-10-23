@@ -12,7 +12,6 @@
         <div class="col-lg-8">
             <form asp-action="Edit" method="post" class="p-5 border rounded shadow-lg bg-white">
                 <input type="hidden" asp-for="Id" />
-
                 <div asp-validation-summary="ModelOnly" class="text-danger mb-4"></div>
 
                 <!-- Patient's Full Name (Visible to Doctor) -->
@@ -26,23 +25,21 @@
                     </div>
                 }
 
-                <!-- Doctor's Full Name (Visible to Patient) -->
+                <!-- Doctor's Names (Visible to Patient) -->
                 @if (User.IsInRole("Patient"))
                 {
                     <div class="form-group mb-5">
-                        <label class="form-label font-weight-bold">Doctor's Full Name</label>
+                        <label class="form-label font-weight-bold">Assigned Doctors</label>
                         <div class="p-3 border rounded bg-light text-dark">
-                            <span>
-                                @foreach (var doctor in Model.Doctors)
-                                {
-                                    @doctor.FirstName @doctor.LastName <br />
-                                }
-                            </span>
+                            @foreach (var doctor in ViewBag.DoctorFullName)
+                            {
+                                <p>@doctor</p>
+                            }
                         </div>
                     </div>
                 }
 
-                <!-- Appointment Date -->
+                <!-- Appointment Date (Visible to both Doctor and Patient) -->
                 <div class="form-group mb-5">
                     <label asp-for="AppointmentDate" class="form-label font-weight-bold">Appointment Date</label>
                     <div class="input-group input-group-lg">
@@ -64,28 +61,23 @@
                     </div>
                 }
 
-                <!-- Feedback Status -->
-                <div class="form-group mb-5">
-                    <label class="form-label font-weight-bold">Feedback Status</label>
-                    <div class="p-3 border rounded bg-light text-dark">
-                        <span>
-                            @(Model.FeedbackStatus == Hospital_Managment_System.Enums.FeedbackStatus.Given ? "Given" : "Pending")
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Feedback Input for Patient (Visible always) -->
+                <!-- Feedback Status (Visible to Patient) -->
                 @if (User.IsInRole("Patient"))
                 {
                     <div class="form-group mb-5">
-                        <label for="feedbackInput" class="form-label font-weight-bold">Your Feedback</label>
-                        <textarea id="feedbackInput" name="feedbackInput" class="form-control rounded" rows="4" placeholder="Provide your feedback"></textarea>
-                        <span asp-validation-for="Feedback" class="text-danger"></span>
+                        <label class="form-label font-weight-bold">Feedback Status</label>
+                        <div class="p-3 border rounded bg-light text-dark">
+                            <span>@(Model.FeedbackStatus == Hospital_Managment_System.Enums.FeedbackStatus.Given ? "Given" : "Pending")</span>
+                        </div>
                     </div>
+                }
 
-                    <!-- Submit Feedback Button (Visible always) -->
-                    <div class="text-center mb-5">
-                        <button type="submit" class="btn btn-primary btn-lg px-4 py-2">Submit Feedback</button>
+                <!-- Feedback Box (Visible to Patient, Optional) -->
+                @if (User.IsInRole("Patient"))
+                {
+                    <div class="form-group mb-5">
+                        <label class="form-label font-weight-bold">Your Feedback (Optional)</label>
+                        <textarea name="feedbackInput" class="form-control" rows="5" placeholder="Leave your feedback (optional)">@Model.Feedback</textarea>
                     </div>
                 }
 
@@ -94,12 +86,12 @@
                 {
                     <div class="form-group mb-5">
                         <h5 class="font-weight-bold">Assigned Doctors</h5>
-                        <ul class="list-group">
+                        <ul class="list-group" id="assigned-doctors-list">
                             @if (ViewBag.AssignedDoctors != null)
                             {
                                 @foreach (var doctor in ViewBag.AssignedDoctors)
                                 {
-                                    <li class="list-group-item d-flex justify-content-between align-items-center" id="doctor-@doctor.Id">
+                                    <li class="list-group-item d-flex justify-content-between align-items-center assigned-doctor" data-doctor-id="@doctor.Id">
                                         @doctor.FirstName @doctor.LastName
                                         <button type="button" class="btn btn-danger btn-sm remove-doctor" data-doctor-id="@doctor.Id">Remove</button>
                                     </li>
@@ -108,22 +100,27 @@
                         </ul>
                     </div>
 
+                    <!-- Add Doctors to Appointment -->
                     <div class="form-group mb-5">
-                        <h5 class="font-weight-bold">Add More Doctors</h5>
-                        <select id="doctor-selection" class="form-control select2-multiple" multiple="multiple">
+                        <h5 class="font-weight-bold">Add Doctors to Appointment</h5>
+                        <select id="doctor-selection" class="form-control">
+                            <option value="">-- Select Doctor --</option>
                             @foreach (var doctor in ViewBag.UnassignedDoctors)
                             {
                                 <option value="@doctor.Id">@doctor.FirstName @doctor.LastName</option>
                             }
                         </select>
-                        <span asp-validation-for="Doctors" class="text-danger"></span>
+                        <button type="button" id="add-doctor-btn" class="btn btn-success mt-3">Add Doctor</button>
                     </div>
 
-                    <!-- Save Button -->
-                    <div class="text-center mb-5">
-                        <input type="submit" value="Save" class="btn btn-primary btn-lg px-5 py-2" />
-                    </div>
+                    <!-- Hidden input to submit selected doctors -->
+                    <input type="hidden" id="DoctorIds" name="DoctorIds" />
                 }
+
+                <!-- Save Button (Visible to both Patient and Doctor) -->
+                <div class="text-center mb-5">
+                    <input type="submit" value="Save" class="btn btn-primary btn-lg px-5 py-2" />
+                </div>
 
                 <!-- Back Button -->
                 <div class="text-center">
@@ -135,15 +132,55 @@
 </div>
 
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function () {
-            // Initialize Select2 for doctor selection
-            $('.select2-multiple').select2({
-                placeholder: "Select doctors",
-                allowClear: true
+            // Add doctor to the assigned doctors list
+            $('#add-doctor-btn').on('click', function () {
+                var selectedDoctorId = $('#doctor-selection').val();
+                var selectedDoctorName = $('#doctor-selection option:selected').text();
+
+                if (selectedDoctorId && !$('#assigned-doctors-list [data-doctor-id="' + selectedDoctorId + '"]').length) {
+                    $('#assigned-doctors-list').append(`
+                                <li class="list-group-item d-flex justify-content-between align-items-center assigned-doctor" data-doctor-id="${selectedDoctorId}">
+                                    ${selectedDoctorName}
+                                    <button type="button" class="btn btn-danger btn-sm remove-doctor" data-doctor-id="${selectedDoctorId}">Remove</button>
+                                </li>
+                            `);
+
+                    // Remove the selected doctor from the unassigned doctors dropdown
+                    $("#doctor-selection option[value='" + selectedDoctorId + "']").remove();
+
+                    // Update hidden input with the selected doctors
+                    updateDoctorIds();
+                }
             });
+
+            // Remove a doctor from the assigned doctors list
+            $(document).on('click', '.remove-doctor', function () {
+                var doctorId = $(this).data('doctor-id');
+                var doctorName = $(this).closest('li').text().trim().replace('Remove', '');
+
+                // Re-add the doctor to the unassigned doctors dropdown
+                $('#doctor-selection').append(`<option value="${doctorId}">${doctorName}</option>`);
+
+                $(this).closest('li').remove();
+
+                // Update hidden input with the selected doctors
+                updateDoctorIds();
+            });
+
+            // Update the hidden DoctorIds input with selected doctors
+            function updateDoctorIds() {
+                var doctorIds = [];
+                $('#assigned-doctors-list .assigned-doctor').each(function () {
+                    doctorIds.push($(this).data('doctor-id'));
                 });
+                $('#DoctorIds').val(doctorIds.join(','));
+            }
+
+            // Initially update DoctorIds when the page loads
+            updateDoctorIds();
+        });
     </script>
     @await Html.PartialAsync("_ValidationScriptsPartial")
 }

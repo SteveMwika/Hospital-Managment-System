@@ -25,6 +25,7 @@ namespace Hospital_Managment_System.Models
 
         public float BillAmount { get; set; }
 
+        /*public BillStatus BillStatus { get; set; }*/
         // Removed BillStatus string property
 
         public int DoctorNotification { get; set; }

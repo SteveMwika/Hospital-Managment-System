@@ -182,8 +182,13 @@ namespace Hospital_Managment_System.Data
                       .HasConversion<int>();
                 entity.Property(a => a.BillAmount)
                       .HasColumnType("float");
+                
                 entity.Property(a => a.Feedback)
                       .HasMaxLength(200);
+                entity.Property(a => a.Feedback)
+                      .HasMaxLength(200)
+                      .IsRequired(false); // This makes the field optional (allows nulls)
+                      
 
                 // Removed BillStatus string property
                 entity.Property(a => a.DoctorNotification)
@@ -192,6 +197,8 @@ namespace Hospital_Managment_System.Data
                       .IsRequired();
                 entity.Property(a => a.FeedbackStatus)
                       .HasConversion<int>();
+                //entity.Property(a => a.BillStatus)
+                //      .HasConversion<int>();
 
                 // Relationship with Patient
                 entity.HasOne(a => a.Patient)

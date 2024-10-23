@@ -1,32 +1,86 @@
-﻿@model Hospital_Managment_System.ViewModels.DoctorCreateAppointmentViewModel
+﻿@model Hospital_Managment_System.Models.Appointment
 
 @{
     ViewData["Title"] = "Create Appointment";
+    var isDoctor = User.IsInRole("Doctor");  // Check if the user is a doctor
+    var isPatient = User.IsInRole("Patient");  // Check if the user is a patient
 }
 
 <h2>Create Appointment</h2>
 
 <form asp-action="Create" method="post">
+    @if (isPatient)
+    {
+        <div class="form-group">
+            <label for="PatientName">Patient Name</label>
+            <input type="text" class="form-control" value="@ViewBag.PatientName" disabled />
+        </div>
+
+        <div class="form-group">
+            <label for="selectedDoctorId">Select Doctor</label>
+            <select name="selectedDoctorId" class="form-control">
+                <option value="">-- Select Doctor --</option>
+                @if (ViewBag.DoctorsList != null)
+                {
+                    @foreach (var doctor in ViewBag.DoctorsList)
+                    {
+                        <option value="@doctor.Value" selected="@doctor.Selected">@doctor.Text</option>
+                    }
+                }
+            </select>
+        </div>
+    }
+    else if (isDoctor)
+    {
+        <div class="form-group">
+            <label for="selectedPatientId">Select Patient</label>
+            <select name="selectedPatientId" class="form-control">
+                <option value="">-- Select Patient --</option>
+                @if (ViewBag.PatientsList != null)
+                {
+                    @foreach (var patient in ViewBag.PatientsList)
+                    {
+                        <option value="@patient.Value" selected="@patient.Selected">@patient.Text</option>
+                    }
+                }
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="DoctorName">Doctor</label>
+            <input type="text" class="form-control" value="@ViewBag.DoctorName" disabled />
+            <input type="hidden" name="selectedDoctorId" value="@ViewBag.CurrentDoctorId" />
+        </div>
+    }
+
     <div class="form-group">
-        <label asp-for="DoctorName"></label>
-        <input asp-for="DoctorName" class="form-control" readonly />
+        <label for="AppointmentDate">Appointment Date and Time</label>
+        <input type="datetime-local" asp-for="AppointmentDate" class="form-control" />
+        <span asp-validation-for="AppointmentDate" class="text-danger"></span>
     </div>
+
+    @if (isDoctor)
+    {
+        <div class="form-group">
+            <label for="AppointmentStatus">Appointment Status</label>
+            <select asp-for="AppointmentStatus" class="form-control">
+                @foreach (var status in Enum.GetValues(typeof(Hospital_Managment_System.Enums.AppointmentStatus)))
+                {
+                    <option value="@status" selected="@((Hospital_Managment_System.Enums.AppointmentStatus)status == Hospital_Managment_System.Enums.AppointmentStatus.Pending)">@status</option>
+                }
+            </select>
+            <span asp-validation-for="AppointmentStatus" class="text-danger"></span>
+        </div>
+    }
+
+    <!-- Hidden fields for values the patient shouldn't set -->
+    <input type="hidden" asp-for="DoctorNotification" value="0" />
+    <input type="hidden" asp-for="PatientNotification" value="0" />
+    <input type="hidden" asp-for="FeedbackStatus" value="2" /> <!-- FeedbackStatus.Pending = 2 -->
+    <input type="hidden" asp-for="Feedback" value="" /> <!-- Set Feedback to empty string -->
+
+
     <div class="form-group">
-        <label asp-for="PatientId"></label>
-        <select asp-for="PatientId" asp-items="Model.PatientsList" class="form-control"></select>
+        <button type="submit" class="btn btn-primary">Create Appointment</button>
     </div>
-    <div class="form-group">
-        <label asp-for="AppointmentDate"></label>
-        <input asp-for="AppointmentDate" class="form-control" type="datetime-local" />
-    </div>
-    <div class="form-group">
-        <label asp-for="AppointmentStatus"></label>
-        <select asp-for="AppointmentStatus" class="form-control">
-            @foreach (var status in Enum.GetValues(typeof(Hospital_Managment_System.Enums.AppointmentStatus)))
-            {
-                <option value="@status">@status.ToString()</option>
-            }
-        </select>
-    </div>
-    <button type="submit" class="btn btn-primary">Create</button>
 </form>
