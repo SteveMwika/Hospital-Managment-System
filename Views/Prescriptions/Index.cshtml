@@ -1,0 +1,51 @@
+﻿@model IEnumerable<Hospital_Managment_System.Models.Prescription>
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<IdentityUser> UserManager
+
+@{
+    ViewData["Title"] = "Prescriptions";
+}
+
+<h1>Prescriptions</h1>
+
+<p>
+    @if (User.IsInRole("Admin") || User.IsInRole("Doctor"))
+    {
+        <a asp-action="Create" class="btn btn-primary">Create New Prescription</a>
+    }
+</p>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Medicine</th>
+            <th>Patient</th>
+            <th>Doctor</th>
+            <th>Instructions</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var prescription in Model)
+        {
+            <tr>
+                <td>@prescription.Medicine.Name</td>
+                <td>@prescription.Patient.FirstName @prescription.Patient.LastName</td>
+                <td>@prescription.Doctor.FirstName @prescription.Doctor.LastName</td>
+                <td>@prescription.Instructions</td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@prescription.Id">Details</a>
+                    @if (User.IsInRole("Admin") || (User.IsInRole("Doctor") && prescription.DoctorId == int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0")))
+                    {
+                        <a asp-action="Edit" asp-route-id="@prescription.Id">Edit</a>
+                    }
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <a asp-action="Delete" asp-route-id="@prescription.Id">Delete</a>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

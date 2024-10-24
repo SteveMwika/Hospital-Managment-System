@@ -1,0 +1,52 @@
+﻿@using Hospital_Managment_System.Helpers
+@model Hospital_Managment_System.Models.Appointment
+
+@{
+    ViewData["Title"] = "Lab Report";
+}
+
+<h2 class="text-center">Lab Report</h2>
+
+<div class="report-section">
+    <h4>Patient Information</h4>
+    <p><strong>Patient Name:</strong> @Model.Patient.FirstName @Model.Patient.LastName</p>
+    <p><strong>Doctor:</strong> Dr. @Model.Doctors.FirstOrDefault()?.FirstName @Model.Doctors.FirstOrDefault()?.LastName</p>
+    <p><strong>Report Date:</strong> @DateTime.Now.ToString("MMMM dd, yyyy")</p>
+</div>
+
+<hr />
+
+<h4>Lab Test Results</h4>
+
+@if (Model.LabTests.Any(t => t.IsCompleted))
+{
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Test Name</th>
+                <th>Result</th>
+                <th>Units</th>
+                <th>Reference Range</th>
+                <th>Flag</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var test in Model.LabTests.Where(t => t.IsCompleted))
+            {
+                <tr>
+                    <td>@test.TestName</td>
+                    <td>@test.TestResult</td>
+                    <td>@LabTestHelper.GetUnitsForTest(test.TestName)</td>
+                    <td>@LabTestHelper.GetReferenceRangeForTest(test.TestName)</td>
+                    <td>@LabTestHelper.GetFlagForTestResult(test)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>No completed lab tests available.</p>
+}
+
+<a asp-action="Index" class="btn btn-secondary">Back to Appointments</a>

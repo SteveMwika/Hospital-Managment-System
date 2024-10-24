@@ -1,0 +1,62 @@
+﻿@model Hospital_Managment_System.Models.LabTest
+
+@{
+    ViewData["Title"] = "Lab Test Results";
+}
+
+<h2>Lab Test Results</h2>
+
+<div class="card mb-3">
+    <div class="card-header bg-primary text-white">
+        <h4>Test: @Model.TestName</h4>
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">Patient</dt>
+            <dd class="col-sm-9">
+                @if (Model.Appointment?.Patient != null)
+                {
+                    @Model.Appointment.Patient.FirstName @Model.Appointment.Patient.LastName
+                }
+                else
+                {
+                    <span class="text-danger">Patient data not available</span>
+                }
+            </dd>
+
+            <dt class="col-sm-3">Doctor</dt>
+            <dd class="col-sm-9">
+                @if (Model.Appointment?.Doctors?.Any() == true)
+                {
+                    @Model.Appointment.Doctors.FirstOrDefault()?.FirstName @Model.Appointment.Doctors.FirstOrDefault()?.LastName
+                }
+                else
+                {
+                    <span class="text-danger">Doctor data not available</span>
+                }
+            </dd>
+
+            <dt class="col-sm-3">Date of Test</dt>
+            <dd class="col-sm-9">@Model.TestDate.ToString("MMMM dd, yyyy")</dd>
+
+            <dt class="col-sm-3">Test Result</dt>
+            <dd class="col-sm-9">
+                @Html.Raw(Model.TestResult.Replace("\n", "<br />"))
+            </dd>
+
+            <dt class="col-sm-3">Units</dt>
+            <dd class="col-sm-9">@Hospital_Managment_System.Helpers.LabTestHelper.GetUnitsForTest(Model.TestName)</dd>
+
+            <dt class="col-sm-3">Reference Range</dt>
+            <dd class="col-sm-9">@Hospital_Managment_System.Helpers.LabTestHelper.GetReferenceRangeForTest(Model.TestName)</dd>
+
+            <dt class="col-sm-3">Result Flag</dt>
+            <dd class="col-sm-9">@Hospital_Managment_System.Helpers.LabTestHelper.GetFlagForTestResult(Model)</dd>
+
+            <dt class="col-sm-3">Comments</dt>
+            <dd class="col-sm-9">@Model.Comments</dd>
+        </dl>
+    </div>
+</div>
+
+<a asp-action="Index" class="btn btn-secondary">Back to Test List</a>

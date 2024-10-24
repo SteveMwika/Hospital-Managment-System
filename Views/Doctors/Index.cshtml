@@ -1,0 +1,60 @@
+﻿@model IEnumerable<Hospital_Managment_System.Models.Doctor>
+
+@using System.Security.Claims
+
+@{
+    ViewData["Title"] = "Doctors";
+}
+
+<h1>Doctors</h1>
+
+<p>
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-action="Create" class="btn btn-primary">Create New Doctor</a>
+    }
+</p>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Full Name</th>
+            <th>Specialization</th>
+            <th>Department</th>
+            <th>Status</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var doctor in Model)
+        {
+            <tr>
+                <td>@doctor.FirstName @doctor.LastName</td>
+                <td>@doctor.Specialization</td>
+                <td>@doctor.Department?.Name</td>
+                <td>@doctor.Status</td>
+                <td>@doctor.Email</td>
+                <td>@doctor.Phone</td>
+                <td>
+                    <div>
+                        <a asp-action="Details" asp-route-id="@doctor.Id" class="btn btn-info">Details</a>
+                    </div>
+                    @if (User.IsInRole("Admin") || (User.IsInRole("Doctor") && doctor.UserId == User.FindFirstValue(ClaimTypes.NameIdentifier)))
+                    {
+                        <div>
+                            <a asp-action="Edit" asp-route-id="@doctor.Id" class="btn btn-warning">Edit</a>
+                        </div>
+                    }
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <div>
+                            <a asp-action="Delete" asp-route-id="@doctor.Id" class="btn btn-danger">Delete</a>
+                        </div>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

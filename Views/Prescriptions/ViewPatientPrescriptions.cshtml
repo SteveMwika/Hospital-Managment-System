@@ -1,0 +1,40 @@
+﻿@model IEnumerable<Hospital_Managment_System.Models.Prescription>
+
+@{
+    ViewData["Title"] = "Patient Prescriptions";
+    var patientFullName = ViewBag.PatientFullName ?? "Patient";
+}
+
+<h2>@patientFullName's Prescriptions</h2>
+<hr />
+
+@if (Model.Any())
+{
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Medicine Name</th>
+                <th>Medicine Description</th>
+                <th>Price</th>
+                <th>Instructions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var prescription in Model)
+            {
+                <tr>
+                    <td>@prescription.Medicine.Name</td>
+                    <td>@prescription.Medicine.Description</td>
+                    <td>@prescription.Medicine.Price?.ToString("C")</td>
+                    <td>@prescription.Instructions</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p class="text-danger">No prescriptions found for this patient.</p>
+}
+
+<a href="@Url.Action("DoctorPatients")" class="btn btn-secondary mt-3">Back to Patients</a>

@@ -1,0 +1,43 @@
+﻿@model Hospital_Managment_System.Models.Patient
+
+@{
+    ViewData["Title"] = "Delete Patient";
+}
+
+<h1>Delete Patient</h1>
+
+<h3>Are you sure you want to delete this patient?</h3>
+<div>
+    <h4>Patient</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">Full Name</dt>
+        <dd class="col-sm-10">@Model.FirstName @Model.LastName</dd>
+
+        <dt class="col-sm-2">Email</dt>
+        <dd class="col-sm-10">@Model.Email</dd>
+
+        <dt class="col-sm-2">Phone Number</dt>
+        <dd class="col-sm-10">@Model.PhoneNumber</dd>
+
+        <dt class="col-sm-2">Primary Doctor</dt>
+        <dd class="col-sm-10">
+            @if (Model.PrimaryDoctor != null)
+            {
+                @Model.PrimaryDoctor.FirstName @Model.PrimaryDoctor.LastName
+            }
+            else
+            {
+                <span>N/A</span>
+            }
+        </dd>
+    </dl>
+</div>
+
+<form asp-action="DeleteConfirmed">
+    <input type="hidden" asp-for="Id" />
+    <div class="form-group">
+        <input type="submit" value="Delete" class="btn btn-danger" />
+        <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+    </div>
+</form>

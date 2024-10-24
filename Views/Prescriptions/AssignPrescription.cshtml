@@ -1,0 +1,65 @@
+﻿@model Hospital_Managment_System.Models.Prescription
+
+@{
+    ViewData["Title"] = "Assign Prescription";
+}
+
+<h2>Assign Prescription</h2>
+<hr />
+<form asp-action="AssignPrescription" method="post">
+    <input type="hidden" name="appointmentId" value="@ViewBag.AppointmentId" />
+
+    <!-- Medicine Dropdown -->
+    <div class="form-group">
+        <label for="medicineId">Select Medicine</label>
+        <select id="medicineId" name="medicineId" class="form-control" required>
+            <option value="">-- Select Medicine --</option>
+            @foreach (var medicine in ViewBag.Medicines)
+            {
+                <option value="@medicine.Id">@medicine.Name</option>
+            }
+        </select>
+    </div>
+
+    <!-- Medicine Description -->
+    <div class="form-group mt-3">
+        <label for="medicineDescription">Medicine Description</label>
+        <textarea id="medicineDescription" class="form-control" rows="3" readonly>
+            @* The description could be dynamically updated with JavaScript if needed *@
+        </textarea>
+    </div>
+
+    <!-- Instructions for Prescription -->
+    <div class="form-group mt-3">
+        <label for="instructions">Instructions</label>
+        <textarea id="instructions" name="instructions" class="form-control" rows="5" required></textarea>
+    </div>
+
+    <!-- Submit Button -->
+    <button type="submit" class="btn btn-primary mt-4">Assign Prescription</button>
+</form>
+
+<a href="@Url.Action("Details", "Appointments", new { id = ViewBag.AppointmentId })" class="btn btn-secondary mt-3">Back to Appointment</a>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Dynamically update the medicine description when a medicine is selected
+            $('#medicineId').change(function() {
+                var selectedMedicineId = $(this).val();
+
+                if (selectedMedicineId) {
+                    // Fetch the selected medicine description from the ViewBag (or use AJAX for dynamic loading)
+                    var selectedMedicine = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.Medicines));
+                    var medicine = selectedMedicine.find(m => m.Id == selectedMedicineId);
+
+                    if (medicine) {
+                        $('#medicineDescription').val(medicine.Description);
+                    }
+                } else {
+                    $('#medicineDescription').val('');
+                }
+            });
+        });
+    </script>
+}

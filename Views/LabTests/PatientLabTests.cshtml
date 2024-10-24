@@ -1,0 +1,33 @@
+﻿@model IEnumerable<Hospital_Managment_System.Models.LabTest>
+
+@{
+    ViewData["Title"] = "Lab Tests";
+}
+
+<h2>Lab Tests for @Model.First().Appointment.Patient.FirstName @Model.First().Appointment.Patient.LastName</h2>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Test Name</th>
+            <th>Test Date</th>
+            <th>Result</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var test in Model)
+        {
+            <tr>
+                <td>@test.TestName</td>
+                <td>@test.TestDate</td>
+                <td>@test.TestResult</td>
+                <td>
+                    <a asp-action="ViewTestResults" asp-route-id="@test.Id" class="btn btn-info">View Details</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<a href="@Url.Action("Index", "Appointments")" class="btn btn-secondary">Back to Appointments</a>

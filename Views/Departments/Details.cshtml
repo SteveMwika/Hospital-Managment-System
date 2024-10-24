@@ -1,0 +1,32 @@
+﻿@model Hospital_Managment_System.Models.Department
+
+@{
+    ViewData["Title"] = "Department Details";
+}
+
+<h2>Department Details</h2>
+
+<div class="card">
+    <div class="card-header">
+        <strong>Department: @Model.Name</strong>
+    </div>
+    <div class="card-body">
+        <h5>Doctors in this Department:</h5>
+        @if (Model.Doctors != null && Model.Doctors.Any())
+        {
+            <ul>
+                @foreach (var doctor in Model.Doctors)
+                {
+                    <li>@doctor.FirstName @doctor.LastName</li>
+                }
+            </ul>
+        }
+        else
+        {
+            <p>No doctors assigned to this department.</p>
+        }
+    </div>
+</div>
+
+<a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Edit</a>
+<a asp-action="Index" class="btn btn-primary">Back to List</a>

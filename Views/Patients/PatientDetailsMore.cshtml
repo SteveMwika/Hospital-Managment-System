@@ -1,0 +1,61 @@
+﻿@model Hospital_Managment_System.Models.Patient
+
+@{
+    ViewData["Title"] = "Patient Details";
+}
+
+<h2 class="text-center">Patient Details</h2>
+
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4>Personal Information</h4>
+        </div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-3">First Name</dt>
+                <dd class="col-sm-9">@Model.FirstName</dd>
+
+                <dt class="col-sm-3">Last Name</dt>
+                <dd class="col-sm-9">@Model.LastName</dd>
+
+                <dt class="col-sm-3">Date of Birth</dt>
+                <dd class="col-sm-9">
+                    @Model.DateOfBirth?.ToString("yyyy-MM-dd")"
+                </dd>
+
+                <dt class="col-sm-3">Gender</dt>
+                <dd class="col-sm-9">@Model.Gender?.ToString() </dd>
+
+                <dt class="col-sm-3">Phone Number</dt>
+                <dd class="col-sm-9">@Model.PhoneNumber</dd>
+
+                <dt class="col-sm-3">Email</dt>
+                <dd class="col-sm-9">@Model.Email</dd>
+
+                <dt class="col-sm-3">Address</dt>
+                <dd class="col-sm-9">@Model.Address</dd>
+
+                <dt class="col-sm-3">Emergency Contact</dt>
+                <dd class="col-sm-9">@Model.EmergencyContact</dd>
+
+                <dt class="col-sm-3">Date of Admission</dt>
+                <dd class="col-sm-9">
+                    @Model.DateTimeOfAdmission?.ToString("yyyy-MM-dd HH:mm")
+                </dd>
+
+                <dt class="col-sm-3">Primary Doctor</dt>
+                <dd class="col-sm-9">
+                    @if (Model.PrimaryDoctor != null)
+                    {
+                        <span>Dr. @Model.PrimaryDoctor.FirstName @Model.PrimaryDoctor.LastName</span>
+                    }
+                    else
+                    {
+                        <span>No Primary Doctor Assigned</span>
+                    }
+                </dd>
+            </dl>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,34 @@
+﻿@model IEnumerable<Hospital_Managment_System.Models.Patient>
+
+@{
+    ViewData["Title"] = "Lab Tests - Ordered Patients";
+}
+
+<h2>Lab Tests - Patients</h2>
+
+@if (Model.Any())
+{
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Patient Name</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var patient in Model)
+            {
+                <tr>
+                    <td>@patient.FirstName @patient.LastName</td>
+                    <td>
+                        <a asp-action="ViewOrderedTests" asp-route-id="@patient.Id" class="btn btn-primary">View Ordered Tests</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>No lab tests have been ordered for any patients.</p>
+}
