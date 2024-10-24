@@ -1,0 +1,19 @@
+﻿@model Hospital_Managment_System.Models.LabTest
+
+@{
+    ViewData["Title"] = "Test Results";
+}
+
+<h2>Test Results</h2>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <h4 class="card-title">Test: @Model.TestName</h4>
+        <p class="card-text"><strong>Date Ordered:</strong> @Model.TestDate.ToString("MMMM dd, yyyy")</p>
+        <p class="card-text"><strong>Result:</strong> @Model.TestResult ?? "Pending"</p>
+        <p class="card-text"><strong>Comments:</strong> @Model.Comments ?? "No comments."</p>
+        <p class="card-text"><strong>Completion Status:</strong> @(Model.IsCompleted ? "Completed" : "Pending")</p>
+    </div>
+</div>
+
+<a asp-action="PatientTests" class="btn btn-secondary">Back to Tests</a>

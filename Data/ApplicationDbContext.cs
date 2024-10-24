@@ -188,7 +188,10 @@ namespace Hospital_Managment_System.Data
                 entity.Property(a => a.Feedback)
                       .HasMaxLength(200)
                       .IsRequired(false); // This makes the field optional (allows nulls)
-                      
+                
+                entity.Property(a => a.LabReport)
+                      .IsRequired(false); // This makes the field optional (allows nulls)
+
 
                 // Removed BillStatus string property
                 entity.Property(a => a.DoctorNotification)
@@ -289,11 +292,17 @@ namespace Hospital_Managment_System.Data
                       .IsRequired()
                       .HasConversion<int>();  // Enum is stored as an integer
                 entity.Property(l => l.TestResult)
-                      .HasMaxLength(500);  // Limit the result text size
+                      .HasMaxLength(500)  // Limit the result text size
+                      .IsRequired(false);
+
                 entity.Property(l => l.TestDate)
                       .IsRequired();  // Date when the test was conducted
                 entity.Property(l => l.IsCompleted)
                       .IsRequired();  // Ensure the test completion is marked
+                entity.Property(l => l.Comments)
+                      .IsRequired(false);
+
+
 
                 entity.HasOne(l => l.Appointment)
                       .WithMany(a => a.LabTests)
