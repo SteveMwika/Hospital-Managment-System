@@ -234,7 +234,6 @@ namespace Hospital_Managment_System.Controllers
                 appointment.PatientNotification = (int)NotificationStatus.Unread;
                 appointment.FeedbackStatus = FeedbackStatus.Pending;
                 appointment.Feedback = string.Empty;
-                appointment.LabReport = string.Empty;
                 appointment.AppointmentStatus = AppointmentStatus.Pending;
 
                 // Assign the selected doctor to the appointment

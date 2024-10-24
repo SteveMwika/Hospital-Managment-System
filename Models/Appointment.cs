@@ -36,8 +36,6 @@ namespace Hospital_Managment_System.Models
         [StringLength(200)]
         public string Feedback { get; set; }
 
-        public string LabReport { get; set; }
-
         // Navigation Properties
         public ICollection<Prescription> Prescriptions { get; set; } = new List<Prescription>();
 

@@ -1,34 +1,37 @@
-﻿@model IEnumerable<Hospital_Managment_System.Models.Patient>
+﻿@model IEnumerable<Hospital_Managment_System.Models.LabTest>
 
 @{
-    ViewData["Title"] = "Lab Tests - Ordered Patients";
+    ViewData["Title"] = "Lab Tests";
 }
 
-<h2>Lab Tests - Patients</h2>
+<h2 class="text-center">Lab Tests</h2>
 
-@if (Model.Any())
-{
-    <table class="table table-bordered">
-        <thead>
+<table class="table table-bordered table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>Test Name</th>
+            <th>Test Result</th>
+            <th>Test Date</th>
+            <th>Completed</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var test in Model)
+        {
             <tr>
-                <th>Patient Name</th>
-                <th>Action</th>
+                <td>@test.TestName</td>
+                <td>@test.TestResult</td>
+                <td>@test.TestDate.ToString("yyyy-MM-dd")</td>
+                <td>@(test.IsCompleted ? "Yes" : "No")</td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@test.Id" class="btn btn-info">Details</a>
+                    <a asp-action="Edit" asp-route-id="@test.Id" class="btn btn-warning">Edit</a>
+                    <a asp-action="Delete" asp-route-id="@test.Id" class="btn btn-danger">Delete</a>
+                </td>
             </tr>
-        </thead>
-        <tbody>
-            @foreach (var patient in Model)
-            {
-                <tr>
-                    <td>@patient.FirstName @patient.LastName</td>
-                    <td>
-                        <a asp-action="ViewOrderedTests" asp-route-id="@patient.Id" class="btn btn-primary">View Ordered Tests</a>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
-else
-{
-    <p>No lab tests have been ordered for any patients.</p>
-}
+        }
+    </tbody>
+</table>
+
+<a asp-action="Create" class="btn btn-primary">Add New Lab Test</a>

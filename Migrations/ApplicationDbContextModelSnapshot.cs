@@ -64,9 +64,6 @@ namespace Hospital_Managment_System.Migrations
                     b.Property<int>("FeedbackStatus")
                         .HasColumnType("int");
 
-                    b.Property<string>("LabReport")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int>("PatientId")
                         .HasColumnType("int");
 
@@ -203,6 +200,7 @@ namespace Hospital_Managment_System.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Comments")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsCompleted")
@@ -215,6 +213,7 @@ namespace Hospital_Managment_System.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("TestResult")
+                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
