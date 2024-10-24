@@ -1,4 +1,5 @@
-﻿@model Hospital_Managment_System.Models.Appointment
+﻿@using Hospital_Managment_System.Enums
+@model Hospital_Managment_System.Models.Appointment
 
 @{
     ViewData["Title"] = "Appointment Report";
@@ -76,6 +77,7 @@
     </section>
 
     <!-- Billing Information (Visible to Patient) -->
+    <!-- Billing Information (Visible to Patient and Admin only) -->
     @if (User.IsInRole("Patient") || User.IsInRole("Admin"))
     {
         <section class="mb-5">
@@ -88,10 +90,26 @@
                     <dd class="col-sm-8">$@Model.Billing.Amount.ToString("F2")</dd>
 
                     <dt class="col-sm-4">Billing Status</dt>
-                    <dd class="col-sm-8">@Model.Billing.Status ?? "N/A"</dd>
+                    <dd class="col-sm-8">@Model.Billing.Status</dd>
 
                     <dt class="col-sm-4">Billing Date</dt>
                     <dd class="col-sm-8">@Model.Billing.BillingDate.ToString("yyyy-MM-dd")</dd>
+
+                    @if (Model.Billing.Status == BillStatus.Paid)
+                    {
+                        <dt class="col-sm-4">Payment Date</dt>
+                        <dd class="col-sm-8">@Model.Billing.PaymentDate?.ToString("yyyy-MM-dd")</dd>
+
+                        <dt class="col-sm-4">Payment Method</dt>
+                        <dd class="col-sm-8">@Model.Billing.PaymentMethod</dd>
+                    }
+                    else
+                    {
+                        <dt class="col-sm-4">Due Date</dt>
+                        <dd class="col-sm-8">@Model.Billing.DueDate?.ToString("yyyy-MM-dd")</dd>
+                    }
+
+                    
                 </dl>
             }
             else

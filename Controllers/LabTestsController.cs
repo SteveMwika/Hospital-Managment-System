@@ -102,15 +102,17 @@ namespace Hospital_Managment_System.Controllers
             return View(patientLabTests);
         }
 
-        // GET: LabTests/ViewTestResults/5 (Both Doctor and Patient can view specific test results)
+        // GET: LabTests/ViewTestResults/5
+        [HttpGet]
         [Authorize(Roles = "Doctor, Patient")]
         public async Task<IActionResult> ViewTestResults(int? id)
         {
             if (id == null)
             {
-                return BadRequest();
+                return BadRequest("Test ID is required.");
             }
 
+            // Retrieve the lab test and include related data such as the appointment, patient, and doctors
             var labTest = await _context.LabTests
                 .Include(l => l.Appointment)
                 .ThenInclude(a => a.Patient)
@@ -120,40 +122,35 @@ namespace Hospital_Managment_System.Controllers
 
             if (labTest == null)
             {
-                return NotFound();
+                return NotFound("Lab test not found.");
             }
 
-            // Patients can only view their own test results
-            if (User.IsInRole("Patient"))
-            {
-                var currentUser = await _userManager.GetUserAsync(User);
-                var patient = await _context.Patients.FirstOrDefaultAsync(p => p.UserId == currentUser.Id);
+            var currentUser = await _userManager.GetUserAsync(User);
 
-                if (labTest.Appointment.PatientId != patient.Id)
+            // Check if the current user is a doctor
+            if (User.IsInRole("Doctor"))
+            {
+                var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.UserId == currentUser.Id);
+                if (doctor == null || !labTest.Appointment.Doctors.Any(d => d.Id == doctor.Id))
                 {
-                    return Forbid();
+                    return Forbid(); // Doctor can only view their own patients' test results
                 }
             }
 
+            // Check if the current user is a patient
+            if (User.IsInRole("Patient"))
+            {
+                var patient = await _context.Patients.FirstOrDefaultAsync(p => p.UserId == currentUser.Id);
+                if (patient == null || labTest.Appointment.PatientId != patient.Id)
+                {
+                    return Forbid(); // Patients can only view their own test results
+                }
+            }
+
+            // Render the View with the lab test data
             return View(labTest);
         }
 
-
-        public async Task<IActionResult> ViewLabReport(int appointmentId)
-        {
-            var labTests = await _context.LabTests
-                .Include(l => l.Appointment)
-                .ThenInclude(a => a.Patient)
-                .Where(l => l.AppointmentId == appointmentId)
-                .ToListAsync();
-
-            if (labTests == null || labTests.Count == 0)
-            {
-                return NotFound();
-            }
-
-            return View("LabReport", labTests);
-        }
 
         // GET: LabTests/OrderLabTests
         [HttpGet]
@@ -205,12 +202,14 @@ namespace Hospital_Managment_System.Controllers
 
             foreach (var test in selectedTests)
             {
+                var testName = Enum.Parse<LabTestName>(test);
                 var labTest = new LabTest
                 {
                     AppointmentId = appointmentId,
-                    TestName = Enum.Parse<LabTestName>(test),
+                    TestName = testName,
                     TestDate = DateTime.Now,  // Set TestDate to the current date and time
-                    IsCompleted = false  // Set the test to incomplete by default
+                    IsCompleted = true,  // Set to true since we're generating the result right away
+                    TestResult = GenerateFormattedLabTestResult(testName) // Generate formatted result string
                 };
 
                 _context.LabTests.Add(labTest);
@@ -218,251 +217,95 @@ namespace Hospital_Managment_System.Controllers
 
             await _context.SaveChangesAsync();
 
-            // Automatically generate the lab report after saving the lab tests
-            await GenerateAndSaveLabReport(appointmentId);
-
             // Redirect back to the Edit page after generating the report
             return RedirectToAction("Edit", "Appointments", new { id = appointmentId });
         }
 
-
-       
-
-
-        // Method to automatically generate the lab report and save it
-        private async Task GenerateAndSaveLabReport(int appointmentId)
+        // Generate the full formatted lab test result string using plain text formatting
+        private string GenerateFormattedLabTestResult(LabTestName testName)
         {
-            var appointment = await _context.Appointments
-                .Include(a => a.Patient)
-                .Include(a => a.Doctors)
-                .Include(a => a.LabTests)
-                .FirstOrDefaultAsync(a => a.Id == appointmentId);
+            var resultValue = GenerateRandomTestResult(testName);
+            var units = LabTestHelper.GetUnitsForTest(testName);
+            var referenceRange = LabTestHelper.GetReferenceRangeForTest(testName);
+            var flag = LabTestHelper.GetFlagForTestResult(new LabTest { TestName = testName, TestResult = resultValue });
 
-            if (appointment == null)
-            {
-                return;
-            }
+            // Format the string with plain text using \n for line breaks
+            var resultString = $"Test Name: {testName}\n" +
+                               $"Result: {resultValue} {units}\n" +
+                               $"Reference Range: {referenceRange}\n" +
+                               $"Flag: {flag}\n";
 
-            //// Generate the lab report only if there are completed tests
-            //if (!appointment.LabTests.Any(lt => lt.IsCompleted))
-            //{
-            //    return;
-            //}
-
-            // Generate the report content
-            var reportHtml = GenerateLabReportHtml(appointment);
-
-            // Save the report in the database if it hasn't been saved already
-            if (appointment.LabReport == null)
-            {
-                appointment.LabReport = reportHtml;
-                _context.Update(appointment);
-                await _context.SaveChangesAsync();
-            }
+            return resultString;
         }
 
-        // Method to generate the HTML content for the lab report
-        private string GenerateLabReportHtml(Appointment appointment)
+        // Generate random test results for each lab test within valid ranges
+        private string GenerateRandomTestResult(LabTestName testName)
         {
-            var sb = new StringBuilder();
-
-            sb.AppendLine("<html>");
-            sb.AppendLine("<head><style>");
-            sb.AppendLine("body { font-family: Arial, sans-serif; }");
-            sb.AppendLine("h1 { text-align: center; color: darkblue; }");
-            sb.AppendLine("table { width: 100%; border-collapse: collapse; margin-top: 20px; }");
-            sb.AppendLine("th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }");
-            sb.AppendLine("th { background-color: #f2f2f2; }");
-            sb.AppendLine("</style></head>");
-            sb.AppendLine("<body>");
-
-            sb.AppendLine("<h1>Lab Report</h1>");
-            sb.AppendLine("<p><strong>Patient Name:</strong> " + appointment.Patient.FirstName + " " + appointment.Patient.LastName + "</p>");
-            sb.AppendLine("<p><strong>Doctor:</strong> " + appointment.Doctors.FirstOrDefault()?.FirstName + " " + appointment.Doctors.FirstOrDefault()?.LastName + "</p>");
-            sb.AppendLine("<p><strong>Report Date:</strong> " + DateTime.Now.ToString("MMMM dd, yyyy") + "</p>");
-            sb.AppendLine("<hr />");
-
-            sb.AppendLine("<table>");
-            sb.AppendLine("<tr><th>Test Name</th><th>Result</th><th>Units</th><th>Reference Range</th><th>Flag</th></tr>");
-
-            foreach (var test in appointment.LabTests.Where(t => t.IsCompleted))
-            {
-                var result = test.TestResult;
-                var flag = LabTestHelper.GetFlagForTestResult(test);
-                sb.AppendLine($"<tr><td>{test.TestName}</td><td>{result}</td><td>{LabTestHelper.GetUnitsForTest(test.TestName)}</td><td>{LabTestHelper.GetReferenceRangeForTest(test.TestName)}</td><td>{flag}</td></tr>");
-            }
-
-            sb.AppendLine("</table>");
-            sb.AppendLine("</body></html>");
-
-            return sb.ToString();
-        }
-
-
-        private bool LabTestExists(int id)
-        {
-            return _context.LabTests.Any(e => e.Id == id);
-        }
-
-        private string GetUnitsForTest(LabTestName testName)
-        {
-            switch (testName)
-            {
-                case LabTestName.CompleteBloodCount: return "x10^9/L";
-                case LabTestName.BasicMetabolicPanel: return "mg/dL";
-                case LabTestName.ComprehensiveMetabolicPanel: return "mg/dL";
-                case LabTestName.LipidPanel: return "mg/dL";
-                case LabTestName.LiverFunctionTest: return "U/L";
-                case LabTestName.ThyroidFunctionTest: return "mU/L";
-                case LabTestName.HemoglobinA1c: return "%";
-                case LabTestName.Urinalysis: return "pH, Specific Gravity";
-                case LabTestName.BloodGlucose: return "mg/dL";
-                case LabTestName.ProthrombinTime: return "seconds";
-                case LabTestName.DDimers: return "mg/L";
-                case LabTestName.CReactiveProtein: return "mg/L";
-                case LabTestName.RheumatoidFactor: return "IU/mL";
-                case LabTestName.ErythrocyteSedimentationRate: return "mm/hr";
-                case LabTestName.IronStudies: return "mcg/dL";
-                case LabTestName.VitaminDTest: return "ng/mL";
-                case LabTestName.VitaminB12Test: return "pg/mL";
-                case LabTestName.ElectrolytePanel: return "mEq/L";
-                case LabTestName.ArterialBloodGas: return "mmHg";
-                case LabTestName.BloodUreaNitrogen: return "mg/dL";
-                default: return "Units";
-            }
-        }
-
-        private string GetReferenceRangeForTest(LabTestName testName)
-        {
-            switch (testName)
-            {
-                case LabTestName.CompleteBloodCount: return "4.0 - 11.0 x10^9/L";
-                case LabTestName.BasicMetabolicPanel: return "70 - 100 mg/dL";
-                case LabTestName.ComprehensiveMetabolicPanel: return "8.5 - 10.2 mg/dL";
-                case LabTestName.LipidPanel: return "130 - 200 mg/dL (Total Cholesterol)";
-                case LabTestName.LiverFunctionTest: return "10 - 40 U/L";
-                case LabTestName.ThyroidFunctionTest: return "0.4 - 4.0 mU/L";
-                case LabTestName.HemoglobinA1c: return "<5.7%";
-                case LabTestName.Urinalysis: return "pH: 4.5 - 8.0, SG: 1.005 - 1.030";
-                case LabTestName.BloodGlucose: return "70 - 99 mg/dL";
-                case LabTestName.ProthrombinTime: return "11 - 13.5 seconds";
-                case LabTestName.DDimers: return "<0.50 mg/L";
-                case LabTestName.CReactiveProtein: return "<10 mg/L";
-                case LabTestName.RheumatoidFactor: return "<20 IU/mL";
-                case LabTestName.ErythrocyteSedimentationRate: return "0 - 20 mm/hr";
-                case LabTestName.IronStudies: return "60 - 170 mcg/dL";
-                case LabTestName.VitaminDTest: return "30 - 100 ng/mL";
-                case LabTestName.VitaminB12Test: return "200 - 900 pg/mL";
-                case LabTestName.ElectrolytePanel: return "Sodium: 135 - 145 mEq/L, Potassium: 3.5 - 5.0 mEq/L";
-                case LabTestName.ArterialBloodGas: return "pH: 7.35 - 7.45, pCO2: 35 - 45 mmHg";
-                case LabTestName.BloodUreaNitrogen: return "7 - 20 mg/dL";
-                default: return "N/A";
-            }
-        }
-
-        private string GetFlagForTestResult(LabTest test)
-        {
+            var random = new Random();
             double result;
 
-            // Attempt to parse the result as a double (you may need to handle other types depending on your results)
-            if (!double.TryParse(test.TestResult, out result))
-            {
-                return "N/A";  // If the result can't be parsed, return N/A
-            }
-
-            switch (test.TestName)
+            // Generate random results based on the test type and valid range
+            switch (testName)
             {
                 case LabTestName.CompleteBloodCount:
-                    if (result < 4.0) return "LOW";
-                    if (result > 11.0) return "HIGH";
-                    return "NORMAL";
+                    result = Math.Round(random.NextDouble() * (11.0 - 4.0) + 4.0, 2);
+                    break;
 
                 case LabTestName.BasicMetabolicPanel:
-                    if (result < 70) return "LOW";
-                    if (result > 100) return "HIGH";
-                    return "NORMAL";
+                    result = Math.Round(random.NextDouble() * (100 - 70) + 70, 2);
+                    break;
 
                 case LabTestName.ComprehensiveMetabolicPanel:
-                    if (result < 8.5) return "LOW";
-                    if (result > 10.2) return "HIGH";
-                    return "NORMAL";
+                    result = Math.Round(random.NextDouble() * (10.2 - 8.5) + 8.5, 2);
+                    break;
 
                 case LabTestName.LipidPanel:
-                    if (result < 130) return "LOW";
-                    if (result > 200) return "HIGH";
-                    return "NORMAL";
+                    result = Math.Round(random.NextDouble() * (200 - 130) + 130, 2);
+                    break;
 
                 case LabTestName.LiverFunctionTest:
-                    if (result < 10) return "LOW";
-                    if (result > 40) return "HIGH";
-                    return "NORMAL";
+                    result = Math.Round(random.NextDouble() * (40 - 10) + 10, 2);
+                    break;
 
                 case LabTestName.ThyroidFunctionTest:
-                    if (result < 0.4) return "LOW";
-                    if (result > 4.0) return "HIGH";
-                    return "NORMAL";
+                    result = Math.Round(random.NextDouble() * (4.0 - 0.4) + 0.4, 2);
+                    break;
 
                 case LabTestName.HemoglobinA1c:
-                    if (result >= 5.7) return "HIGH";
-                    return "NORMAL";
+                    result = Math.Round(random.NextDouble() * (6.5 - 4.0) + 4.0, 2);
+                    break;
 
                 case LabTestName.BloodGlucose:
-                    if (result < 70) return "LOW";
-                    if (result > 99) return "HIGH";
-                    return "NORMAL";
+                    result = Math.Round(random.NextDouble() * (99 - 70) + 70, 2);
+                    break;
 
                 case LabTestName.ProthrombinTime:
-                    if (result < 11) return "LOW";
-                    if (result > 13.5) return "HIGH";
-                    return "NORMAL";
+                    result = Math.Round(random.NextDouble() * (13.5 - 11.0) + 11.0, 2);
+                    break;
 
                 case LabTestName.DDimers:
-                    if (result >= 0.5) return "HIGH";
-                    return "NORMAL";
+                    result = Math.Round(random.NextDouble() * (0.5 - 0.0), 2);
+                    break;
 
                 case LabTestName.CReactiveProtein:
-                    if (result >= 10) return "HIGH";
-                    return "NORMAL";
-
-                case LabTestName.RheumatoidFactor:
-                    if (result >= 20) return "HIGH";
-                    return "NORMAL";
-
-                case LabTestName.ErythrocyteSedimentationRate:
-                    if (result > 20) return "HIGH";
-                    return "NORMAL";
-
-                case LabTestName.IronStudies:
-                    if (result < 60) return "LOW";
-                    if (result > 170) return "HIGH";
-                    return "NORMAL";
-
-                case LabTestName.VitaminDTest:
-                    if (result < 30) return "LOW";
-                    if (result > 100) return "HIGH";
-                    return "NORMAL";
-
-                case LabTestName.VitaminB12Test:
-                    if (result < 200) return "LOW";
-                    if (result > 900) return "HIGH";
-                    return "NORMAL";
+                    result = Math.Round(random.NextDouble() * (10 - 0), 2);
+                    break;
 
                 case LabTestName.ElectrolytePanel:
-                    if (result < 135) return "LOW";
-                    if (result > 145) return "HIGH";
-                    return "NORMAL";
+                    result = Math.Round(random.NextDouble() * (145 - 135) + 135, 2); // Example for Sodium levels
+                    break;
 
                 case LabTestName.BloodUreaNitrogen:
-                    if (result < 7) return "LOW";
-                    if (result > 20) return "HIGH";
-                    return "NORMAL";
+                    result = Math.Round(random.NextDouble() * (20 - 7) + 7, 2);
+                    break;
 
-                // Add cases for the rest of the LabTestNames as needed
                 default:
-                    return "N/A";  // For any undefined or unknown tests, return N/A
+                    result = Math.Round(random.NextDouble() * 100, 2);  // Default random value
+                    break;
             }
-        }
 
+            return result.ToString();
+        }
 
     }
 }

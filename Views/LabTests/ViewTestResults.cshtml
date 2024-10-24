@@ -1,19 +1,44 @@
 ﻿@model Hospital_Managment_System.Models.LabTest
 
 @{
-    ViewData["Title"] = "Test Results";
+    ViewData["Title"] = "Lab Test Results";
 }
 
-<h2>Test Results</h2>
+<h2>Lab Test Results</h2>
 
 <div class="card mb-3">
+    <div class="card-header bg-primary text-white">
+        <h4>Test: @Model.TestName</h4>
+    </div>
     <div class="card-body">
-        <h4 class="card-title">Test: @Model.TestName</h4>
-        <p class="card-text"><strong>Date Ordered:</strong> @Model.TestDate.ToString("MMMM dd, yyyy")</p>
-        <p class="card-text"><strong>Result:</strong> @Model.TestResult ?? "Pending"</p>
-        <p class="card-text"><strong>Comments:</strong> @Model.Comments ?? "No comments."</p>
-        <p class="card-text"><strong>Completion Status:</strong> @(Model.IsCompleted ? "Completed" : "Pending")</p>
+        <dl class="row">
+            <dt class="col-sm-3">Patient</dt>
+            <dd class="col-sm-9">@Model.Appointment.Patient.FirstName @Model.Appointment.Patient.LastName</dd>
+
+            <dt class="col-sm-3">Doctor</dt>
+            <dd class="col-sm-9">@Model.Appointment.Doctors.FirstOrDefault()?.FirstName @Model.Appointment.Doctors.FirstOrDefault()?.LastName</dd>
+
+            <dt class="col-sm-3">Date of Test</dt>
+            <dd class="col-sm-9">@Model.TestDate.ToString("MMMM dd, yyyy")</dd>
+
+            <dt class="col-sm-3">Test Result</dt>
+            <dd class="col-sm-9">
+                @Html.Raw(Model.TestResult.Replace("\n", "<br />"))
+            </dd>
+
+            <dt class="col-sm-3">Units</dt>
+            <dd class="col-sm-9">@Hospital_Managment_System.Helpers.LabTestHelper.GetUnitsForTest(Model.TestName)</dd>
+
+            <dt class="col-sm-3">Reference Range</dt>
+            <dd class="col-sm-9">@Hospital_Managment_System.Helpers.LabTestHelper.GetReferenceRangeForTest(Model.TestName)</dd>
+
+            <dt class="col-sm-3">Result Flag</dt>
+            <dd class="col-sm-9">@Hospital_Managment_System.Helpers.LabTestHelper.GetFlagForTestResult(Model)</dd>
+
+            <dt class="col-sm-3">Comments</dt>
+            <dd class="col-sm-9">@Model.Comments</dd>
+        </dl>
     </div>
 </div>
 
-<a asp-action="PatientTests" class="btn btn-secondary">Back to Tests</a>
+<a asp-action="Index" class="btn btn-secondary">Back to Test List</a>

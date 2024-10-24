@@ -117,6 +117,8 @@ namespace Hospital_Managment_System.Controllers
             return Forbid(); // Default forbid if no valid role matches
         }
 
+        // GET: Appointments/Create
+
         [Authorize(Roles = "Doctor, Patient")]
         public async Task<IActionResult> Create()
         {
@@ -176,6 +178,7 @@ namespace Hospital_Managment_System.Controllers
 
             return View();
         }
+        // POST: Appointments/Create
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -217,6 +220,9 @@ namespace Hospital_Managment_System.Controllers
 
                 appointment.PatientId = patient.Id;
                 appointment.Doctors.Add(doctor);  // Doctor assigning themselves
+                appointment.BillAmount = GenerateRandomBillAmount();
+                appointment.DoctorNotification = (int)NotificationStatus.Unread;
+                appointment.PatientNotification = (int)NotificationStatus.Unread;
             }
             else if (User.IsInRole("Patient"))
             {
@@ -249,13 +255,44 @@ namespace Hospital_Managment_System.Controllers
             _context.Add(appointment);
             await _context.SaveChangesAsync();
 
+            // Generate and save the billing information for the appointment
+            var billing = GenerateBillingForAppointment(appointment);
+            _context.Billings.Add(billing);
+            await _context.SaveChangesAsync();
+
             return RedirectToAction(nameof(Index));
         }
+
+        private Billing GenerateBillingForAppointment(Appointment appointment)
+        {
+            var random = new Random();
+            var billing = new Billing
+            {
+                AppointmentId = appointment.Id,
+                Amount = (decimal) appointment.BillAmount,  // Use the bill amount generated for the appointment
+                Status = (BillStatus)random.Next(1, 3), // Randomly select Paid or Unpaid status
+                BillingDate = DateTime.Now,
+                PaymentMethod = (PaymentMethodType)random.Next(1, 8), // Randomly select a payment method
+            };
+
+            if (billing.Status == BillStatus.Paid)
+            {
+                billing.PaymentDate = DateTime.Now; // Set payment date for paid bills
+            }
+            else
+            {
+                billing.DueDate = DateTime.Now.AddDays(30); // Set due date for unpaid bills (e.g., 30 days)
+            }
+
+            return billing;
+        }
+
 
         private float GenerateRandomBillAmount()
         {
             Random rand = new Random();
-            return (float)(rand.NextDouble() * (300 - 100) + 100);
+            // Generate a random amount between 100 and 300 and round to 2 decimal places
+            return (float)Math.Round((rand.NextDouble() * (300 - 100) + 100), 2);
         }
 
 
@@ -400,9 +437,6 @@ namespace Hospital_Managment_System.Controllers
 
             return RedirectToAction(nameof(Index));
         }
-
-
-
 
 
 

@@ -292,7 +292,7 @@ namespace Hospital_Managment_System.Data
                       .IsRequired()
                       .HasConversion<int>();  // Enum is stored as an integer
                 entity.Property(l => l.TestResult)
-                      .HasMaxLength(500)  // Limit the result text size
+                      .HasMaxLength(1000)  // Limit the result text size
                       .IsRequired(false);
 
                 entity.Property(l => l.TestDate)
