@@ -1,5 +1,5 @@
 using Hospital_Managment_System.Data;
-using Hospital_Managment_System.Services;
+//using Hospital_Managment_System.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,7 +20,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Register the LabTestService in the DI container
-builder.Services.AddScoped<ILabTestService, LabTestService>(); // Register the LabTestService
+//builder.Services.AddScoped<ILabTestService, LabTestService>(); // Register the LabTestService
 
 // Configure Identity
 builder.Services.AddDefaultIdentity<IdentityUser>(options =>

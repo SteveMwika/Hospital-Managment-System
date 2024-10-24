@@ -115,6 +115,14 @@
 
                     <!-- Hidden input to submit selected doctors -->
                     <input type="hidden" id="DoctorIds" name="DoctorIds" />
+
+                    <!-- Button to order lab tests (visible only to doctors) -->
+                    <div class="form-group mb-5">
+                        <h5 class="font-weight-bold">Order Lab Tests</h5>
+                        <a href="@Url.Action("OrderLabTests", "LabTests", new { appointmentId = Model.Id })" class="btn btn-primary">
+                            Order Lab Tests
+                        </a>
+                    </div>
                 }
 
                 <!-- Save Button (Visible to both Patient and Doctor) -->
@@ -141,11 +149,11 @@
 
                 if (selectedDoctorId && !$('#assigned-doctors-list [data-doctor-id="' + selectedDoctorId + '"]').length) {
                     $('#assigned-doctors-list').append(`
-                                <li class="list-group-item d-flex justify-content-between align-items-center assigned-doctor" data-doctor-id="${selectedDoctorId}">
-                                    ${selectedDoctorName}
-                                    <button type="button" class="btn btn-danger btn-sm remove-doctor" data-doctor-id="${selectedDoctorId}">Remove</button>
-                                </li>
-                            `);
+                                        <li class="list-group-item d-flex justify-content-between align-items-center assigned-doctor" data-doctor-id="${selectedDoctorId}">
+                                            ${selectedDoctorName}
+                                            <button type="button" class="btn btn-danger btn-sm remove-doctor" data-doctor-id="${selectedDoctorId}">Remove</button>
+                                        </li>
+                                    `);
 
                     // Remove the selected doctor from the unassigned doctors dropdown
                     $("#doctor-selection option[value='" + selectedDoctorId + "']").remove();
