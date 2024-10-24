@@ -1,398 +1,166 @@
 ﻿using Hospital_Managment_System.Data;
-using Hospital_Managment_System.Enums;
 using Hospital_Managment_System.Models;
-using Hospital_Managment_System.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
+using System.Linq;
+using System.Threading.Tasks;
 
-namespace Hospital_Managment_System.Controllers
+[Authorize(Roles = "Doctor, Patient")]
+public class PrescriptionsController : Controller
 {
-    [Authorize]
-    public class PrescriptionsController : Controller
+    private readonly ApplicationDbContext _context;
+    private readonly UserManager<IdentityUser> _userManager;
+
+    public PrescriptionsController(ApplicationDbContext context, UserManager<IdentityUser> userManager)
     {
-        private readonly ApplicationDbContext _context;
-        private readonly UserManager<IdentityUser> _userManager;
+        _context = context;
+        _userManager = userManager;
+    }
 
-        public PrescriptionsController(ApplicationDbContext context, UserManager<IdentityUser> userManager)
+    // GET: Prescription/PatientPrescriptions (For Patient)
+    [Authorize(Roles = "Patient")]
+    public async Task<IActionResult> PatientPrescriptions()
+    {
+        var currentUser = await _userManager.GetUserAsync(User);
+        var patient = await _context.Patients.FirstOrDefaultAsync(p => p.UserId == currentUser.Id);
+
+        if (patient == null)
         {
-            _context = context;
-            _userManager = userManager;
+            return Forbid();
         }
 
-        // GET: Prescriptions
-        [Authorize(Roles = "Admin,Doctor,Patient")]
-        public async Task<IActionResult> Index()
+        var prescriptions = await _context.Prescriptions
+            .Include(p => p.Medicine)
+            .Where(p => p.PatientId == patient.Id)
+            .ToListAsync();
+
+        return View(prescriptions);
+    }
+
+    // GET: Prescription/DoctorPatients (For Doctor)
+    [Authorize(Roles = "Doctor")]
+    public async Task<IActionResult> DoctorPatients()
+    {
+        var currentUser = await _userManager.GetUserAsync(User);
+        var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.UserId == currentUser.Id);
+
+        if (doctor == null)
         {
-            var user = await _userManager.GetUserAsync(User);
-            var roles = await _userManager.GetRolesAsync(user);
-
-            IQueryable<Prescription> prescriptionsQuery = _context.Prescriptions
-                .Include(p => p.Medicine)
-                .Include(p => p.Doctor)
-                .Include(p => p.Patient)
-                .AsNoTracking();
-
-            if (roles.Contains(UserRoles.Doctor.ToString()))
-            {
-                var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.UserId == user.Id);
-                if (doctor != null)
-                {
-                    prescriptionsQuery = prescriptionsQuery.Where(p => p.DoctorId == doctor.Id);
-                }
-            }
-            else if (roles.Contains(UserRoles.Patient.ToString()))
-            {
-                var patient = await _context.Patients.FirstOrDefaultAsync(p => p.UserId == user.Id);
-                if (patient != null)
-                {
-                    prescriptionsQuery = prescriptionsQuery.Where(p => p.PatientId == patient.Id);
-                }
-            }
-
-            var prescriptions = await prescriptionsQuery.AsNoTracking().ToListAsync();
-            return View(prescriptions);
+            return Forbid();
         }
 
-        // GET: Prescriptions/Details/5
-        [Authorize(Roles = "Admin,Doctor,Patient")]
-        public async Task<IActionResult> Details(int? id)
+        var patientsWithPrescriptions = await _context.Prescriptions
+            .Include(p => p.Patient)
+            .Where(p => p.DoctorId == doctor.Id)
+            .Select(p => p.Patient)
+            .Distinct()
+            .ToListAsync();
+
+        return View(patientsWithPrescriptions);
+    }
+
+    // GET: Prescription/PatientPrescriptions/5 (For Doctor to View a Specific Patient's Prescriptions)
+    [Authorize(Roles = "Doctor")]
+    public async Task<IActionResult> ViewPatientPrescriptions(int? id)
+    {
+        if (id == null)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var prescription = await _context.Prescriptions
-                .Include(p => p.Medicine)
-                .Include(p => p.Doctor)
-                .Include(p => p.Patient)
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (prescription == null)
-            {
-                return NotFound();
-            }
-
-            // Authorization check: Patients and Doctors can only access their own records
-            if (!IsAuthorizedToAccessPrescription(prescription))
-                return Forbid();
-
-            return View(prescription);
+            return BadRequest();
         }
 
-        // GET: Prescriptions/Create
-        [Authorize(Roles = "Admin,Doctor")]
-        public IActionResult Create()
+        var currentUser = await _userManager.GetUserAsync(User);
+        var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.UserId == currentUser.Id);
+
+        if (doctor == null)
         {
-            // Populate Medicines dropdown
-            ViewData["MedicineId"] = new SelectList(_context.Medicines, "Id", "Name");
-
-            // Populate Patients dropdown
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (User.IsInRole("Admin"))
-            {
-                // Admin can see all patients
-                ViewData["PatientId"] = new SelectList(_context.Patients.Select(p => new { p.Id, FullName = p.FirstName + " " + p.LastName }), "Id", "FullName");
-            }
-            else if (User.IsInRole("Doctor"))
-            {
-                // Doctor can see only their own patients
-                var doctor = _context.Doctors.FirstOrDefault(d => d.UserId == userId);
-                if (doctor != null)
-                {
-                    ViewData["PatientId"] = new SelectList(
-                        _context.Patients
-                            .Where(p => p.PrimaryDoctorId == doctor.Id)
-                            .Select(p => new { p.Id, FullName = p.FirstName + " " + p.LastName }),
-                        "Id",
-                        "FullName");
-                }
-                else
-                {
-                    ViewData["PatientId"] = new SelectList(Enumerable.Empty<SelectListItem>());
-                }
-            }
-
-            // Populate Doctors dropdown (for Admin only)
-            if (User.IsInRole("Admin"))
-            {
-                ViewData["DoctorId"] = new SelectList(_context.Doctors, "Id", "FirstName");
-            }
-
-            // Populate Appointment dropdown
-            ViewData["AppointmentId"] = new SelectList(_context.Appointments, "Id", "Id"); // Adjust as needed
-
-            return View();
+            return Forbid();
         }
 
-        // POST: Prescriptions/Create
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin,Doctor")]
-        public async Task<IActionResult> Create(PrescriptionViewModel model)
+        // Retrieve patient and prescriptions
+        var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Id == id);
+        if (patient == null)
         {
-            if (ModelState.IsValid)
-            {
-                var prescription = new Prescription
-                {
-                    AppointmentId = model.AppointmentID,
-                    MedicineId = model.MedicineID,
-                    Instructions = model.Instructions,
-                    DoctorId = model.DoctorId,
-                    PatientId = model.PatientId
-                };
-
-                _context.Prescriptions.Add(prescription);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-
-            // Repopulate dropdowns in case of error
-            ViewData["MedicineId"] = new SelectList(_context.Medicines, "Id", "Name", model.MedicineID);
-
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (User.IsInRole("Admin"))
-            {
-                ViewData["PatientId"] = new SelectList(_context.Patients.Select(p => new { p.Id, FullName = p.FirstName + " " + p.LastName }), "Id", "FullName", model.PatientId);
-                ViewData["DoctorId"] = new SelectList(_context.Doctors, "Id", "FirstName", model.DoctorId);
-            }
-            else if (User.IsInRole("Doctor"))
-            {
-                var doctor = _context.Doctors.FirstOrDefault(d => d.UserId == userId);
-                if (doctor != null)
-                {
-                    ViewData["PatientId"] = new SelectList(
-                        _context.Patients
-                            .Where(p => p.PrimaryDoctorId == doctor.Id)
-                            .Select(p => new { p.Id, FullName = p.FirstName + " " + p.LastName }),
-                        "Id",
-                        "FullName",
-                        model.PatientId);
-                }
-            }
-
-            ViewData["AppointmentId"] = new SelectList(_context.Appointments, "Id", "Id", model.AppointmentID);
-
-            return View(model);
+            return NotFound("Patient not found.");
         }
 
-        // GET: Prescriptions/Edit/5
-        [Authorize(Roles = "Admin,Doctor")]
-        public async Task<IActionResult> Edit(int? id)
+        var prescriptions = await _context.Prescriptions
+            .Include(p => p.Medicine)
+            .Where(p => p.PatientId == id && p.DoctorId == doctor.Id)
+            .ToListAsync();
+
+        // Pass both prescriptions and patient name to the view
+        ViewBag.PatientFullName = $"{patient.FirstName} {patient.LastName}";
+        return View(prescriptions);
+    }
+
+
+
+    // GET: Prescriptions/AssignPrescription/5
+    [Authorize(Roles = "Doctor")]
+    public async Task<IActionResult> AssignPrescription(int appointmentId)
+    {
+        var appointment = await _context.Appointments
+            .Include(a => a.Patient)
+            .FirstOrDefaultAsync(a => a.Id == appointmentId);
+
+        if (appointment == null)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var prescription = await _context.Prescriptions.FindAsync(id);
-            if (prescription == null)
-            {
-                return NotFound();
-            }
-
-            // Authorization check
-            if (!IsAuthorizedToAccessPrescription(prescription))
-                return Forbid();
-
-            // Populate dropdowns
-            ViewData["MedicineId"] = new SelectList(_context.Medicines, "Id", "Name", prescription.MedicineId);
-
-            if (User.IsInRole("Admin"))
-            {
-                ViewData["PatientId"] = new SelectList(_context.Patients.Select(p => new { p.Id, FullName = p.FirstName + " " + p.LastName }), "Id", "FullName", prescription.PatientId);
-                ViewData["DoctorId"] = new SelectList(_context.Doctors, "Id", "FirstName", prescription.DoctorId);
-            }
-            else if (User.IsInRole("Doctor"))
-            {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var doctor = _context.Doctors.FirstOrDefault(d => d.UserId == userId);
-                if (doctor != null)
-                {
-                    ViewData["PatientId"] = new SelectList(
-                        _context.Patients
-                            .Where(p => p.PrimaryDoctorId == doctor.Id)
-                            .Select(p => new { p.Id, FullName = p.FirstName + " " + p.LastName }),
-                        "Id",
-                        "FullName",
-                        prescription.PatientId);
-                }
-            }
-
-            ViewData["AppointmentId"] = new SelectList(_context.Appointments, "Id", "Id", prescription.AppointmentId);
-
-            // Initialize ViewModel
-            var model = new PrescriptionViewModel
-            {
-                Id = prescription.Id,
-                AppointmentID = prescription.AppointmentId,
-                MedicineID = prescription.MedicineId,
-                Instructions = prescription.Instructions,
-                DoctorId = prescription.DoctorId,
-                PatientId = prescription.PatientId
-            };
-
-            return View(model);
+            return NotFound();
         }
 
-        // POST: Prescriptions/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin,Doctor")]
-        public async Task<IActionResult> Edit(int id, PrescriptionViewModel model)
+        var medicines = await _context.Medicines.ToListAsync();
+        ViewBag.Medicines = medicines;
+        ViewBag.AppointmentId = appointmentId;
+
+        return View();
+    }
+
+    // POST: Prescriptions/AssignPrescription
+    [HttpPost]
+    [Authorize(Roles = "Doctor")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AssignPrescription(int appointmentId, int medicineId, string instructions)
+    {
+        var appointment = await _context.Appointments
+            .Include(a => a.Patient)
+            .Include(a => a.Doctors)
+            .FirstOrDefaultAsync(a => a.Id == appointmentId);
+
+        if (appointment == null)
         {
-            if (id != model.Id)
-            {
-                return NotFound();
-            }
-
-            // Authorization check
-            var prescription = await _context.Prescriptions.FindAsync(id);
-            if (prescription == null)
-            {
-                return NotFound();
-            }
-
-            if (!IsAuthorizedToAccessPrescription(prescription))
-                return Forbid();
-
-            if (ModelState.IsValid)
-            {
-                try
-                {
-                    prescription.AppointmentId = model.AppointmentID;
-                    prescription.MedicineId = model.MedicineID;
-                    prescription.Instructions = model.Instructions;
-                    prescription.DoctorId = model.DoctorId;
-                    prescription.PatientId = model.PatientId;
-
-                    _context.Update(prescription);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!PrescriptionExists(model.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
-            }
-
-            // Repopulate dropdowns in case of error
-            ViewData["MedicineId"] = new SelectList(_context.Medicines, "Id", "Name", model.MedicineID);
-
-            if (User.IsInRole("Admin"))
-            {
-                ViewData["PatientId"] = new SelectList(_context.Patients.Select(p => new { p.Id, FullName = p.FirstName + " " + p.LastName }), "Id", "FullName", model.PatientId);
-                ViewData["DoctorId"] = new SelectList(_context.Doctors, "Id", "FirstName", model.DoctorId);
-            }
-            else if (User.IsInRole("Doctor"))
-            {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var doctor = _context.Doctors.FirstOrDefault(d => d.UserId == userId);
-                if (doctor != null)
-                {
-                    ViewData["PatientId"] = new SelectList(
-                        _context.Patients
-                            .Where(p => p.PrimaryDoctorId == doctor.Id)
-                            .Select(p => new { p.Id, FullName = p.FirstName + " " + p.LastName }),
-                        "Id",
-                        "FullName",
-                        model.PatientId);
-                }
-            }
-
-            ViewData["AppointmentId"] = new SelectList(_context.Appointments, "Id", "Id", model.AppointmentID);
-
-            return View(model);
+            return NotFound();
         }
 
-        // GET: Prescriptions/Delete/5
-        [Authorize(Roles = "Admin, Doctor")]
-        public async Task<IActionResult> Delete(int? id)
+        var medicine = await _context.Medicines.FirstOrDefaultAsync(m => m.Id == medicineId);
+        if (medicine == null)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var prescription = await _context.Prescriptions
-                .Include(p => p.Medicine)
-                .Include(p => p.Doctor)
-                .Include(p => p.Patient)
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (prescription == null)
-            {
-                return NotFound();
-            }
-
-            // Authorization check
-            if (!IsAuthorizedToAccessPrescription(prescription))
-                return Forbid();
-
-            return View(prescription);
+            return NotFound();
         }
 
-        // POST: Prescriptions/Delete/5
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin, Doctor")]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        var doctor = await _context.Doctors
+            .FirstOrDefaultAsync(d => d.UserId == _userManager.GetUserId(User));
+
+        if (doctor == null)
         {
-            var prescription = await _context.Prescriptions.FindAsync(id);
-            if (prescription == null)
-            {
-                return NotFound();
-            }
-
-            // Authorization check
-            if (!IsAuthorizedToAccessPrescription(prescription))
-                return Forbid();
-
-            _context.Prescriptions.Remove(prescription);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            return NotFound();
         }
 
-        private bool PrescriptionExists(int id)
+        // Create the prescription
+        var prescription = new Prescription
         {
-            return _context.Prescriptions.Any(e => e.Id == id);
-        }
+            AppointmentId = appointmentId,
+            MedicineId = medicineId,
+            Instructions = instructions,
+            DoctorId = doctor.Id,
+            PatientId = appointment.PatientId
+        };
 
-        /// <summary>
-        /// Checks if the current user is authorized to access the given prescription.
-        /// </summary>
-        /// <param name="prescription"></param>
-        /// <returns></returns>
-        private bool IsAuthorizedToAccessPrescription(Prescription prescription)
-        {
-            var user = _userManager.GetUserAsync(User).Result;
-            var roles = _userManager.GetRolesAsync(user).Result;
+        _context.Prescriptions.Add(prescription);
+        await _context.SaveChangesAsync();
 
-            if (roles.Contains(UserRoles.Admin.ToString()))
-                return true;
-
-            if (roles.Contains(UserRoles.Doctor.ToString()))
-            {
-                var doctor = _context.Doctors.FirstOrDefault(d => d.UserId == user.Id);
-                return prescription.DoctorId == doctor?.Id;
-            }
-
-            if (roles.Contains(UserRoles.Patient.ToString()))
-            {
-                var patient = _context.Patients.FirstOrDefault(p => p.UserId == user.Id);
-                return prescription.PatientId == patient?.Id;
-            }
-
-            return false;
-        }
+        return RedirectToAction("Details", "Appointments", new { id = appointmentId });
     }
 }

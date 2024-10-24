@@ -13,10 +13,28 @@
     <div class="card-body">
         <dl class="row">
             <dt class="col-sm-3">Patient</dt>
-            <dd class="col-sm-9">@Model.Appointment.Patient.FirstName @Model.Appointment.Patient.LastName</dd>
+            <dd class="col-sm-9">
+                @if (Model.Appointment?.Patient != null)
+                {
+                    @Model.Appointment.Patient.FirstName @Model.Appointment.Patient.LastName
+                }
+                else
+                {
+                    <span class="text-danger">Patient data not available</span>
+                }
+            </dd>
 
             <dt class="col-sm-3">Doctor</dt>
-            <dd class="col-sm-9">@Model.Appointment.Doctors.FirstOrDefault()?.FirstName @Model.Appointment.Doctors.FirstOrDefault()?.LastName</dd>
+            <dd class="col-sm-9">
+                @if (Model.Appointment?.Doctors?.Any() == true)
+                {
+                    @Model.Appointment.Doctors.FirstOrDefault()?.FirstName @Model.Appointment.Doctors.FirstOrDefault()?.LastName
+                }
+                else
+                {
+                    <span class="text-danger">Doctor data not available</span>
+                }
+            </dd>
 
             <dt class="col-sm-3">Date of Test</dt>
             <dd class="col-sm-9">@Model.TestDate.ToString("MMMM dd, yyyy")</dd>

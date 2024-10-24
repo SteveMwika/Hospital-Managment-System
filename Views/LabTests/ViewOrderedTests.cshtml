@@ -1,18 +1,27 @@
 ﻿@model IEnumerable<Hospital_Managment_System.Models.LabTest>
 
 @{
-    ViewData["Title"] = "Ordered Lab Tests";
+    var patient = Model.FirstOrDefault()?.Appointment.Patient;
+    ViewData["Title"] = "Lab Tests for " + (patient != null ? $"{patient.FirstName} {patient.LastName}" : "Unknown Patient");
 }
 
-<h2>Ordered Lab Tests</h2>
+<h2>Lab Tests for @if (patient != null)
+    {
+        @patient.FirstName @patient.LastName
+    }
+    else
+    {
+        <span class="text-danger">Patient not found</span>
+    }</h2>
 
 @if (Model.Any())
 {
-    <table class="table table-bordered">
+    <table class="table table-striped">
         <thead>
             <tr>
                 <th>Test Name</th>
                 <th>Test Date</th>
+                <th>Result</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -23,7 +32,19 @@
                     <td>@test.TestName</td>
                     <td>@test.TestDate.ToString("MMMM dd, yyyy")</td>
                     <td>
-                        <a asp-action="ViewTestResults" asp-route-id="@test.Id" class="btn btn-info">View Results</a>
+                        @if (!string.IsNullOrEmpty(test.TestResult))
+                        {
+                            <span class="col-sm-9">
+                                @Html.Raw(test.TestResult.Replace("\n", "<br />"))
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="text-danger">Result not available</span>
+                        }
+                    </td>
+                    <td>
+                        <a asp-action="ViewTestResults" asp-route-id="@test.Id" class="btn btn-info">View Details</a>
                     </td>
                 </tr>
             }
@@ -32,5 +53,7 @@
 }
 else
 {
-    <p>No tests have been ordered for this patient yet.</p>
+    <p>No lab tests have been ordered for this patient.</p>
 }
+
+<a href="@Url.Action("Index", "LabTests")" class="btn btn-secondary">Back to Patients</a>

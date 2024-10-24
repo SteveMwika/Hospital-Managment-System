@@ -123,6 +123,15 @@
                             Order Lab Tests
                         </a>
                     </div>
+
+                    <!-- Prescription Section (Visible to Doctor) -->
+                    @if (User.IsInRole("Doctor"))
+                    {
+                        <div class="form-group mb-5">
+                            <h5 class="font-weight-bold">Prescriptions</h5>
+                            <a href="@Url.Action("AssignPrescription", "Prescriptions", new { appointmentId = Model.Id })" class="btn btn-primary">Add Prescription</a>
+                        </div>
+                    }
                 }
 
                 <!-- Save Button (Visible to both Patient and Doctor) -->

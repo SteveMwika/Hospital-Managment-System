@@ -140,14 +140,15 @@
                     {
                         <tr>
                             <td>@prescription.Medicine.Name</td>
-                            <td>@prescription.Instructions ?? "N/A"</td>
+                            <td>@prescription.Instructions</td>
                             <td>Dr. @prescription.Doctor.FirstName @prescription.Doctor.LastName</td> <!-- Assuming Prescription has Doctor property -->
                             <td>@Model.Patient.FirstName @Model.Patient.LastName</td>
                             <td>
                                 <ul>
                                     <li>Name: @prescription.Medicine.Name</li>
-                                    <li>Description: @prescription.Medicine.Description ?? "N/A"</li>
-                                    <li>Price: $@Model.Billing.Status ?? "N/A"</li>
+                                    <li>Description: @prescription.Medicine.Description</li>
+                                    <li>Price: $@prescription.Medicine.Price</li>
+                                    <li>Bill: @Model.Billing.Status "</li>
                                 </ul>
                             </td>
                         </tr>

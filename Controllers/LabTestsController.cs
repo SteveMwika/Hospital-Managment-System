@@ -48,13 +48,13 @@ namespace Hospital_Managment_System.Controllers
             return View(patientsWithLabTests);
         }
 
-        // GET: LabTests/ViewOrderedTests/5 (Doctor viewing a specific patient's ordered tests)
+        // GET: LabTests/ViewOrderedTests/5
         [Authorize(Roles = "Doctor")]
         public async Task<IActionResult> ViewOrderedTests(int? id)
         {
             if (id == null)
             {
-                return BadRequest();
+                return BadRequest("Patient ID is required.");
             }
 
             var currentUser = await _userManager.GetUserAsync(User);
@@ -65,19 +65,23 @@ namespace Hospital_Managment_System.Controllers
                 return Forbid();
             }
 
-            var appointment = await _context.Appointments
+            // Find all appointments and lab tests for the given patient that are associated with this doctor
+            var appointmentsWithLabTests = await _context.Appointments
                 .Include(a => a.LabTests)
-                .ThenInclude(l => l.Appointment)
                 .Include(a => a.Patient)
                 .Where(a => a.PatientId == id && a.Doctors.Any(d => d.Id == doctor.Id))
-                .FirstOrDefaultAsync();
+                .ToListAsync();
 
-            if (appointment == null)
+            // Gather all lab tests across multiple appointments (if any)
+            var labTests = appointmentsWithLabTests.SelectMany(a => a.LabTests).ToList();
+
+            if (!labTests.Any())
             {
-                return NotFound();
+                return NotFound("No lab tests found for this patient.");
             }
 
-            return View(appointment.LabTests);
+            // Return the view with the lab tests of the patient
+            return View("ViewOrderedTests", labTests);
         }
 
         // GET: LabTests/PatientTests
@@ -147,9 +151,16 @@ namespace Hospital_Managment_System.Controllers
                 }
             }
 
+            // Ensure that the TestResult is populated properly
+            if (string.IsNullOrEmpty(labTest.TestResult))
+            {
+                labTest.TestResult = "Test result not available"; // Provide a fallback message if no result exists
+            }
+
             // Render the View with the lab test data
             return View(labTest);
         }
+
 
 
         // GET: LabTests/OrderLabTests

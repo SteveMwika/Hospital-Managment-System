@@ -1,0 +1,22 @@
+﻿@model IEnumerable<Hospital_Managment_System.Models.Patient>
+
+<h2>Patients with Prescriptions</h2>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Patient Name</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var patient in Model)
+        {
+            <tr>
+                <td>@patient.FirstName @patient.LastName</td>
+                <td>
+                    <a href="@Url.Action("ViewPatientPrescriptions", "Prescriptions", new { id = patient.Id })" class="btn btn-info">View Prescriptions</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

@@ -4,36 +4,137 @@
     ViewData["Title"] = "Login";
 }
 
-<h1>Login</h1>
+<style>
+    /* Ensure the background fills the entire viewport */
+    html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+    }
 
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Login">
-            <div asp-validation-summary="All" class="text-danger"></div>
-            <div class="form-group mb-3">
-                <label asp-for="Email" class="form-label"></label>
-                <input asp-for="Email" class="form-control" />
-                <span asp-validation-for="Email" class="text-danger"></span>
+    /* Background Layer */
+    .login-background {
+        background: linear-gradient(135deg, rgba(44, 62, 80, 0.9), rgba(52, 73, 94, 0.8)), url('/images/hospital-bg.jpg');
+        background-size: cover;
+        background-position: center;
+        position: relative;
+        z-index: 1;
+        min-height: 100vh;
+        padding: 5rem 0; /* Padding for better spacing */
+    }
+
+    /* Deep Card Layer Styling */
+    .login-card {
+        background-color: rgba(255, 255, 255, 0.95); /* Slight transparency */
+        border-radius: 12px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2), 0 6px 6px rgba(0, 0, 0, 0.3); /* Layered shadow */
+        overflow: hidden;
+    }
+
+    /* Card Header with Gradient */
+    .bg-gradient-primary {
+        background: linear-gradient(45deg, #3498db, #2c3e50); /* Primary Gradient */
+        color: white;
+    }
+
+    /* Gradient Button */
+    .btn-gradient-primary {
+        background: linear-gradient(45deg, #3498db, #2980b9);
+        border: none;
+        color: white;
+        transition: background 0.3s ease;
+    }
+
+        .btn-gradient-primary:hover {
+            background: linear-gradient(45deg, #2980b9, #3498db);
+        }
+
+    /* Form Floating Labels */
+    .form-floating label {
+        font-size: 1rem;
+        color: #555;
+        transition: all 0.3s ease-in-out;
+    }
+
+    .form-floating input:focus + label, .form-floating input:not(:placeholder-shown) + label {
+        font-size: 0.85rem;
+        color: #3498db;
+        transform: translateY(-25px);
+    }
+
+    /* Card Footer */
+    .card-footer {
+        background-color: rgba(52, 73, 94, 0.9);
+        color: #ecf0f1;
+    }
+
+    /* Button Styling */
+    .btn-lg {
+        padding: 0.75rem 1.25rem;
+        font-size: 1.2rem;
+    }
+
+    /* Adjust spacing for small screens without*/
+    .container-fluid {
+        padding: 2rem;
+    }
+</style>
+
+<div class="login-background d-flex align-items-center">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="card shadow-lg border-0 rounded-lg login-card">
+                    <div class="card-header bg-gradient-primary text-white text-center">
+                        <h3 class="font-weight-light my-2">Login to Your Account</h3>
+                        <p class="small">Enter your credentials to access the system</p>
+                    </div>
+                    <div class="card-body">
+                        <form asp-action="Login">
+                            <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                            <!-- Email Input -->
+                            <div class="form-floating mb-4">
+                                <input asp-for="Email" class="form-control form-control-lg" placeholder="Enter your email" />
+                                <label asp-for="Email">Email Address</label>
+                                <span asp-validation-for="Email" class="text-danger"></span>
+                            </div>
+
+                            <!-- Password Input -->
+                            <div class="form-floating mb-4">
+                                <input asp-for="Password" class="form-control form-control-lg" type="password" placeholder="Enter your password" />
+                                <label asp-for="Password">Password</label>
+                                <span asp-validation-for="Password" class="text-danger"></span>
+                            </div>
+
+                            <!-- Remember Me -->
+                            <div class="form-check mb-3">
+                                <input asp-for="RememberMe" class="form-check-input" id="rememberMeCheckbox" />
+                                <label asp-for="RememberMe" class="form-check-label" for="rememberMeCheckbox">Remember me</label>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="form-group text-center">
+                                <button type="submit" class="btn btn-lg btn-gradient-primary w-100">Login</button>
+                            </div>
+
+                            <!-- Register Link -->
+                            <div class="form-group text-center mt-3">
+                                <a asp-action="Register" class="btn btn-link">Register as a Patient</a>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="card-footer text-center py-3 bg-dark text-white">
+                        <small>&copy; 2024 Hospital Management System. All Rights Reserved.</small>
+                    </div>
+                </div>
             </div>
-            <div class="form-group mb-3">
-                <label asp-for="Password" class="form-label"></label>
-                <input asp-for="Password" class="form-control" />
-                <span asp-validation-for="Password" class="text-danger"></span>
-            </div>
-            <div class="form-check mb-3">
-                <input asp-for="RememberMe" class="form-check-input" />
-                <label asp-for="RememberMe" class="form-check-label"></label>
-            </div>
-            <div class="form-group">
-                <button type="submit" class="btn btn-primary">Login</button>
-                <a asp-action="Register" class="btn btn-link">Register as Patient</a>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 
 @section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
+    await Html.RenderPartialAsync("_ValidationScriptsPartial");
 }

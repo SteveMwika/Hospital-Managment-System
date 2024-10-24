@@ -1,0 +1,24 @@
+﻿@model IEnumerable<Hospital_Managment_System.Models.Prescription>
+
+<h2>Your Prescriptions</h2>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Medicine Name</th>
+            <th>Description</th>
+            <th>Price</th>
+            <th>Instructions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var prescription in Model)
+        {
+            <tr>
+                <td>@prescription.Medicine.Name</td>
+                <td>@prescription.Medicine.Description</td>
+                <td>$@prescription.Medicine.Price?.ToString("F2")</td>
+                <td>@prescription.Instructions</td>
+            </tr>
+        }
+    </tbody>
+</table>
