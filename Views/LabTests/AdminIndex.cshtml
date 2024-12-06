@@ -1,0 +1,110 @@
+﻿@model IEnumerable<Hospital_Managment_System.Models.LabTest>
+
+@{
+    ViewData["Title"] = "All Lab Tests";
+}
+
+<div class="container-fluid my-4">
+    <h1 class="text-center mb-4">All Lab Tests</h1>
+
+    <!-- Search Panel -->
+    <div id="search-panel" style="position: fixed; top: 120px; left: 20px; width: 20%; background-color: #f8f9fa; padding: 20px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); border-radius: 8px;">
+        <h5 class="text-center">Filter & Search</h5>
+        <form method="get" asp-action="AdminIndex">
+            <!-- Doctor Name -->
+            <div class="mb-3">
+                <label for="doctorName" class="form-label">Doctor Name</label>
+                <input type="text" name="doctorName" id="doctorName" class="form-control" placeholder="Enter doctor's name" />
+            </div>
+
+            <!-- Patient Name -->
+            <div class="mb-3">
+                <label for="patientName" class="form-label">Patient Name</label>
+                <input type="text" name="patientName" id="patientName" class="form-control" placeholder="Enter patient's name" />
+            </div>
+
+            <!-- Test Name -->
+            <div class="mb-3">
+                <label for="testName" class="form-label">Test Name</label>
+                <input type="text" name="testName" id="testName" class="form-control" placeholder="Enter test name" />
+            </div>
+
+            <!-- Date Range -->
+            <div class="mb-3">
+                <label class="form-label">Date Range</label>
+                <input type="date" name="startDate" class="form-control mb-2" />
+                <input type="date" name="endDate" class="form-control" />
+            </div>
+
+            <!-- Search Button -->
+            <div class="text-center">
+                <button type="submit" class="btn btn-primary w-100">Search</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Lab Tests Table -->
+    <div id="lab-tests-table" style="flex: 1;  padding: 24px;">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover table-striped text-center align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th scope="col">Test Name</th>
+                        <th scope="col">Test Date</th>
+                        <th scope="col">Result</th>
+                        <th scope="col">Patient Name</th>
+                        <th scope="col">Doctor(s)</th>
+                        <th scope="col">Appointment Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Any())
+                    {
+                        @foreach (var test in Model)
+                        {
+                            <tr>
+                                <td class="align-middle">@test.TestName</td>
+                                <td class="align-middle">@test.TestDate.ToString("yyyy-MM-dd")</td>
+                                <td class="align-middle">
+                                    @if (!string.IsNullOrEmpty(test.TestResult))
+                                    {
+                                        <span>
+                                            @Html.Raw(test.TestResult.Replace("\n", "<br />"))
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Result not available</span>
+                                    }
+                                </td>
+                                <td class="align-middle">@test.Appointment.Patient.FirstName @test.Appointment.Patient.LastName</td>
+                                <td class="align-middle">
+                                    @foreach (var doctor in test.Appointment.Doctors)
+                                    {
+                                        <div>Dr. @doctor.FirstName @doctor.LastName</div>
+                                    }
+                                </td>
+
+                                <td>
+                                    <a asp-action="Details" asp-controller="Appointments" asp-route-id="@test.Appointment.Id" asp-route-referrer="AdminIndex" class="btn btn-sm btn-info">
+                                        View Appointment
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-muted">No lab tests found.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="@Url.Action("Index", "Home")" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+    </div>
+</div>

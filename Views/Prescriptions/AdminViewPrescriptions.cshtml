@@ -1,0 +1,132 @@
+﻿@model IEnumerable<Hospital_Managment_System.Models.Prescription>
+
+@{
+    ViewData["Title"] = "Admin View Prescriptions";
+}
+
+<h1>Admin View Prescriptions</h1>
+<hr />
+
+<!-- Search and Filter Form -->
+<form method="get" asp-action="AdminViewPrescriptions" class="mb-4">
+    <div class="row align-items-end">
+        <!-- Search Box -->
+        <div class="col-md-6">
+            <label for="searchQuery" class="form-label">Search by Name</label>
+            <div class="input-group shadow-sm">
+                <input type="text" id="searchQuery" name="searchQuery" class="form-control" placeholder="Search by name..." aria-label="Search" list="searchSuggestions">
+                <datalist id="searchSuggestions"></datalist>
+            </div>
+        </div>
+
+        <!-- Filter By Dropdown -->
+        <div class="col-md-3">
+            <label for="filterBy" class="form-label">Filter By</label>
+            <select id="filterBy" name="filterBy" class="form-select">
+                <option value="Doctor" selected="@(ViewBag.FilterBy == "Doctor")">Doctor</option>
+                <option value="Patient" selected="@(ViewBag.FilterBy == "Patient")">Patient</option>
+            </select>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="col-md-3">
+            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> Search</button>
+        </div>
+    </div>
+</form>
+
+<!-- Prescriptions Table -->
+<table class="table table-bordered table-striped">
+    <thead class="table-dark">
+        <tr>
+            <th>Prescription ID</th>
+            <th>Medicine</th>
+            <th>Instructions</th>
+            <th>Doctor</th>
+            <th>Patient</th>
+            <th>Appointment</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model.Any())
+        {
+            foreach (var prescription in Model)
+            {
+                <tr>
+                    <td>@prescription.Id</td>
+                    <td>@prescription.Medicine.Name</td>
+                    <td>@prescription.Instructions</td>
+                    <td>@prescription.Doctor.FirstName @prescription.Doctor.LastName</td>
+                    <td>@prescription.Patient.FirstName @prescription.Patient.LastName</td>
+                    <td>
+                        <a asp-action="Details" asp-controller="Appointments" asp-route-id="@prescription.AppointmentId" asp-route-referrer="AdminViewPrescriptions" class="btn btn-info">
+                            View Appointment
+                        </a>
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="6" class="text-center">No prescriptions found.</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@section Scripts {
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script>
+        $(document).ready(function () {
+            // Dynamically load suggestions based on the filter
+            function updateSuggestions() {
+                const filterBy = $('#filterBy').val(); // Get current filter selection
+                const datalist = $('#searchSuggestions'); // Target the datalist
+
+                if (filterBy === 'Doctor') {
+                    // Fetch and populate doctor names
+                    $.ajax({
+                        url: '@Url.Action("GetDoctorSuggestions")',
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function (data) {
+                            datalist.empty(); // Clear existing options
+                            data.forEach(item => {
+                                datalist.append(`<option value="${item.value}">`);
+                            });
+                        },
+                        error: function () {
+                            console.error("Error fetching doctor suggestions.");
+                        }
+                    });
+                } else if (filterBy === 'Patient') {
+                    // Fetch and populate patient names
+                    $.ajax({
+                        url: '@Url.Action("GetPatientSuggestions")',
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function (data) {
+                            datalist.empty(); // Clear existing options
+                            data.forEach(item => {
+                                datalist.append(`<option value="${item.value}">`);
+                            });
+                        },
+                        error: function () {
+                            console.error("Error fetching patient suggestions.");
+                        }
+                    });
+                } else {
+                    // Clear datalist if no filter selected
+                    datalist.empty();
+                }
+            }
+
+            // Trigger updateSuggestions on filter change
+            $('#filterBy').on('change', updateSuggestions);
+
+            // Trigger updateSuggestions on page load
+            updateSuggestions();
+        });
+    </script>
+}

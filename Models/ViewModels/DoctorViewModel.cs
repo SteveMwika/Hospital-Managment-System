@@ -51,15 +51,15 @@ namespace Hospital_Managment_System.Models.ViewModels
         public int DepartmentId { get; set; }
 
         // Password fields are only required when creating a new doctor
-        [DataType(DataType.Password)]
-        [Display(Name = "Password")]
-        [StringLength(100, ErrorMessage = "The {0} must be at least {2} characters long.", MinimumLength = 6)]
-        public string Password { get; set; }
+        //[DataType(DataType.Password)]
+        //[Display(Name = "Password")]
+        //[StringLength(100, ErrorMessage = "The {0} must be at least {2} characters long.", MinimumLength = 6)]
+        //public string Password { get; set; }
 
-        [DataType(DataType.Password)]
-        [Display(Name = "Confirm password")]
-        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
-        public string ConfirmPassword { get; set; }
+        //[DataType(DataType.Password)]
+        //[Display(Name = "Confirm password")]
+        //[Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+        //public string ConfirmPassword { get; set; }
 
         // Flag to indicate if we are editing or creating a new user
         public bool IsEditMode { get; set; } = false;

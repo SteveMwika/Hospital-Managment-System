@@ -1,6 +1,7 @@
 ﻿using Hospital_Managment_System.Enums;
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Hospital_Managment_System.Models.ViewModels
 {
@@ -17,6 +18,9 @@ namespace Hospital_Managment_System.Models.ViewModels
         [Display(Name = "Last Name")]
         [StringLength(100, ErrorMessage = "Last Name cannot be longer than 100 characters.")]
         public string LastName { get; set; }
+
+        [NotMapped]
+        public string FullName => $"{FirstName} {LastName}";
 
         [Display(Name = "Date of Birth")]
         [DataType(DataType.Date)]

@@ -12,11 +12,13 @@ namespace Hospital_Managment_System.Models
         [Key]
         public int Id { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "First Name is required.")]
+        [StringLength(50, ErrorMessage = "First Name cannot exceed 50 characters.")]
         [Display(Name = "First Name")]
         public string FirstName { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Last Name is required.")]
+        [StringLength(50, ErrorMessage = "Last Name cannot exceed 50 characters.")]
         [Display(Name = "Last Name")]
         public string LastName { get; set; }
 
@@ -28,18 +30,27 @@ namespace Hospital_Managment_System.Models
         [Display(Name = "Date of Birth")]
         [DataType(DataType.Date)]
         [DisplayFormat(DataFormatString = "{0:yyyy-MM-dd}", ApplyFormatInEditMode = true)]
+        [Required(ErrorMessage = "Date of Birth is required.")]
         public DateTime? DateOfBirth { get; set; }
 
+        [Required(ErrorMessage = "Sex is required.")]
         public Gender? Gender { get; set; } // Enum type
 
+        [Required(ErrorMessage = "Phone Number is required.")]
         [DataType(DataType.PhoneNumber)]
+        [RegularExpression(@"^\d{3}-\d{3}-\d{4}$", ErrorMessage = "Phone Number must be in the format 555-555-5555.")]
         public string PhoneNumber { get; set; }
 
-        [EmailAddress]
+        [Required(ErrorMessage = "Email is required.")]
+        [EmailAddress(ErrorMessage = "Invalid Email Address.")]
         public string Email { get; set; }
 
+        [Required(ErrorMessage = "Address is required.")]
+        [StringLength(100, ErrorMessage = "Address cannot exceed 100 characters.")]
         public string Address { get; set; }
 
+        [Required(ErrorMessage = "Emergency Contact is required.")]
+        [RegularExpression(@"^\d{3}-\d{3}-\d{4}$", ErrorMessage = "Emergency Contact must be in the format 555-555-5555.")]
         public string EmergencyContact { get; set; }
 
         [Display(Name = "Date and Time of Admission")]

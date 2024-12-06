@@ -133,9 +133,9 @@ namespace Hospital_Managment_System.Controllers
         }
 
         // POST: Departments/Delete/5
-        [HttpPost, ActionName("Delete")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public async Task<IActionResult> Delete(int id)
         {
             var department = await _context.Departments.FindAsync(id);
             _context.Departments.Remove(department);

@@ -37,9 +37,9 @@
                 <span asp-validation-for="Gender" class="text-danger"></span>
             </div>
 
-            <div class="form-group mb-3">
-                <label asp-for="PhoneNumber" class="form-label"></label>
-                <input asp-for="PhoneNumber" class="form-control" />
+            <div class="form-group">
+                <label asp-for="PhoneNumber" class="control-label"></label>
+                <input asp-for="PhoneNumber" class="form-control" placeholder="555-555-5555" id="PhoneNumber" />
                 <span asp-validation-for="PhoneNumber" class="text-danger"></span>
             </div>
 
@@ -55,9 +55,9 @@
                 <span asp-validation-for="Address" class="text-danger"></span>
             </div>
 
-            <div class="form-group mb-3">
-                <label asp-for="EmergencyContact" class="form-label"></label>
-                <input asp-for="EmergencyContact" class="form-control" />
+            <div class="form-group">
+                <label asp-for="EmergencyContact" class="control-label"></label>
+                <input asp-for="EmergencyContact" class="form-control" placeholder="555-555-5555" id="EmergencyContact" />
                 <span asp-validation-for="EmergencyContact" class="text-danger"></span>
             </div>
 
@@ -82,6 +82,17 @@
 </div>
 
 @section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/inputmask/5.0.8/jquery.inputmask.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            // Apply input mask to PhoneNumber and EmergencyContact
+            $("#PhoneNumber, #EmergencyContact").inputmask("999-999-9999", {
+                placeholder: "___-___-____",
+                autoUnmask: false
+            });
+        });
+    </script>
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }

@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
+
 namespace Hospital_Managment_System.Controllers
 {
     [Authorize]
@@ -118,7 +119,6 @@ namespace Hospital_Managment_System.Controllers
         }
 
         // GET: Appointments/Create
-
         [Authorize(Roles = "Doctor, Patient")]
         public async Task<IActionResult> Create()
         {
@@ -178,8 +178,8 @@ namespace Hospital_Managment_System.Controllers
 
             return View();
         }
+        
         // POST: Appointments/Create
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Doctor, Patient")]

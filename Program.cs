@@ -1,9 +1,15 @@
 using Hospital_Managment_System.Data;
-//using Hospital_Managment_System.Services;
+using Hospital_Managment_System.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Net.Mail;
+using FluentEmail.Smtp;
+using FluentEmail.Razor;
+using FluentEmail.Core;
+
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +27,22 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 // Register the LabTestService in the DI container
 //builder.Services.AddScoped<ILabTestService, LabTestService>(); // Register the LabTestService
+
+// Register the EmailService in the DI container
+//builder.Services.AddTransient<EmailService>();
+
+
+// Add FluentEmail services
+builder.Services
+    .AddFluentEmail("no-reply@example.com", "Hospital Management System")
+    .AddRazorRenderer()
+    .AddSmtpSender(new SmtpClient("0.0.0.0:1025") // Local SMTP server
+    {
+        Port = 1025, // Default local SMTP port
+        Credentials = new System.Net.NetworkCredential("steve.mwika2@gmail.com", "dkac buwt xqfs gcoy"),
+        EnableSsl = false
+    });
+
 
 // Configure Identity
 builder.Services.AddDefaultIdentity<IdentityUser>(options =>

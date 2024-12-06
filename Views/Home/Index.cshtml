@@ -1,196 +1,342 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@using Hospital_Managment_System.Enums
+
+@{
+    var specializations = Enum.GetValues(typeof(DoctorSpecialization)).Cast<DoctorSpecialization>();
 }
 
-<style>
-    /* Full Page Styling */
-    body, html {
-        margin: 0;
-        padding: 0;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        height: 100%;
-        width: 100%;
-        overflow-x: hidden;
-    }
-
-    /* Hero Section */
-    .hero {
-        width: 100vw;
-        height: 100vh;
-        background: url('https://cdn.pixabay.com/photo/2016/11/14/03/05/surgery-1822458_640.jpg') center center / cover no-repeat;
-        position: relative;
-        color: white;
-        text-align: center;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 3rem;
-    }
-
-    .hero-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(41, 128, 185, 0.75); /* Adds a blue tint to the image */
-        z-index: 1;
-    }
-
-    .hero-content {
-        position: relative;
-        z-index: 2;
-    }
-
-    .hero h1 {
-        font-size: 3.5rem;
-        margin-bottom: 1rem;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
-    }
-
-    .hero p {
-        font-size: 1.5rem;
-        margin-bottom: 2rem;
-        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-    }
-
-    .hero .btn-primary, .hero .btn-secondary {
-        padding: 1rem 2rem;
-        font-size: 1.25rem;
-        border: none;
-        transition: all 0.3s ease;
-    }
-
-    .hero .btn-primary {
-        background: #3498db;
-        color: white;
-    }
-
-        .hero .btn-primary:hover {
-            background: #2980b9;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Our Hospital</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
         }
 
-    .hero .btn-secondary {
-        background: #2ecc71;
-        color: white;
-    }
-
-        .hero .btn-secondary:hover {
-            background: #27ae60;
-        }
-
-    /* Layers on the left and right of the page */
-    .side-background {
-        position: absolute;
-        top: 0;
-        height: 100%;
-        width: 10vw;
-        background: url('https://media.gettyimages.com/id/1312706413/photo/modern-hospital-building.jpg?s=612x612&w=gi&k=20&c=1-EC4Mxf--5u4ItDIzrIOrduXlbKRnbx9xWWtiifrDo=') center center / cover no-repeat;
-        z-index: 0;
-    }
-
-        .side-background.left {
-            left: 0;
-        }
-
-        .side-background.right {
-            right: 0;
-        }
-
-    /* Features Section */
-    .features-section {
-        padding: 3rem 0;
-        text-align: center;
-        background-color: #ecf0f1;
-    }
-
-        .features-section h2 {
-            margin-bottom: 2rem;
-            font-size: 2.5rem;
-            color: #2c3e50;
-        }
-
-        .features-section .feature {
+        /* Hero Section */
+        .hero {
+            position: relative;
+            background: url('https://cdn.pixabay.com/photo/2016/11/14/03/05/surgery-1822458_640.jpg') center center / cover no-repeat;
+            height: 100vh;
+            color: white;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
             padding: 2rem;
+        }
+
+        .hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1;
+        }
+
+        .hero-content {
+            z-index: 2;
+        }
+
+        .hero h1 {
+            font-size: 4rem;
+            font-weight: bold;
+        }
+
+        /* General Sections */
+        section {
+            padding: 3rem 0;
+        }
+
+        .services,
+        .specializations,
+        .features,
+        .testimonials,
+        .interactive-map {
+            background: #f8f9fa;
+        }
+
+        .interactive-map iframe {
+            width: 100%;
+            height: 400px;
+            border: 0;
+        }
+
+        /* Specialization Carousel */
+        .specialization-carousel .carousel-inner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px; /* Space between cards */
+        }
+
+        .specialization-carousel .carousel-item {
+            display: flex;
+            justify-content: center;
+            transition: transform 0.5s ease-in-out;
+            overflow: hidden;
+        }
+
+        /* Middle Card */
+        .specialization-carousel .carousel-item.active {
+            transform: scale(1.2); /* Scale the middle card */
+            z-index: 3;
+        }
+
+        /* Left and Right Cards */
+        .specialization-carousel .carousel-item-next,
+        .specialization-carousel .carousel-item-prev {
+            transform: scale(0.8); /* Smaller size for adjacent cards */
+            z-index: 2;
+            opacity: 0.7; /* Slight transparency for non-active cards */
+        }
+
+        .specialization-carousel .card {
+            width: 300px;
+            min-height: 400px; /* Ensure the cards are tall */
             border-radius: 10px;
-            background-color: #ffffff;
-            box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.1);
-            margin-bottom: 2rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            background-color: #fff;
+            transition: all 0.3s ease-in-out;
+            text-align: center;
         }
 
-    .feature i {
-        font-size: 3rem;
-        color: #3498db;
-        margin-bottom: 1rem;
-    }
-
-    .feature h3 {
-        font-size: 1.5rem;
-        margin-bottom: 1rem;
-        color: #2c3e50;
-    }
-
-    .feature p {
-        font-size: 1rem;
-        color: #7f8c8d;
-    }
-
-    /* Footer Section */
-    .footer {
-        background-color: #2c3e50;
-        padding: 2rem 0;
-        text-align: center;
-        color: white;
-    }
-
-        .footer p {
-            margin: 0;
+        .specialization-carousel .card h5 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
         }
 
-</style>
+        .specialization-carousel .card p {
+            font-size: 1rem;
+            color: #6c757d;
+            padding: 0 1rem; /* Padding for text readability */
+        }
 
-<!-- Hero Section -->
-<div class="hero">
-    <div class="hero-overlay"></div>
-    <div class="side-background left"></div>
-    <div class="side-background right"></div>
-    <div class="hero-content">
-        <h1>Welcome to Our Hospital Management System</h1>
-        <p>Delivering world-class healthcare services for both patients and doctors</p>
-        <a href="/Account/Login" class="btn btn-primary">Login to Your Account</a>
-        <a href="/Account/Register" class="btn btn-secondary ml-3">Register as a Patient</a>
+        .specialization-carousel .carousel-control-prev,
+        .specialization-carousel .carousel-control-next {
+            width: 5%;
+        }
+
+        .specialization-carousel .carousel-control-prev-icon,
+        .specialization-carousel .carousel-control-next-icon {
+            background-color: #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+        }
+
+        .specialization-carousel .carousel {
+            overflow: visible; /* Ensure all cards are visible */
+        }
+
+        /* Testimonials Section */
+        .testimonials .carousel-inner {
+            padding: 2rem 0;
+        }
+
+        /* Footer */
+        .footer {
+            background-color: #343a40;
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">Hospital Management</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+
+                @if (User.IsInRole("Doctor"))
+                {
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Home" asp-action="DoctorIndex">Doctor Dashboard</a>
+                    </li>
+                }
+
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="#services">Services</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#specializations">Specializations</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#testimonials">Testimonials</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#map">Location</a></li>
+                    <li class="nav-item"><a class="nav-link btn btn-primary text-white px-4" href="/Account/Login">Login</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="hero">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <h1>Welcome to Our Hospital</h1>
+            <p class="lead">Advanced healthcare with a patient-centric approach.</p>
+            <a href="/Account/Login" class="btn btn-primary btn-lg me-3">Login</a>
+            <a href="/Account/Register" class="btn btn-secondary btn-lg">Register</a>
+        </div>
     </div>
-</div>
 
-<!-- Features Section -->
-<div class="container features-section">
-    <h2>Why Choose Our System?</h2>
-    <div class="row">
-        <div class="col-md-4">
-            <div class="feature">
-                <i class="bi bi-calendar-check"></i>
-                <h3>Appointment Scheduling</h3>
-                <p>Easily manage and schedule appointments for both patients and doctors.</p>
+    <!-- Services Section -->
+    <section id="services" class="services">
+        <div class="container text-center">
+            <h2 class="mb-5">Our Services</h2>
+            <div class="row">
+                <div class="col-md-4">
+                    <i class="fas fa-calendar-check fa-3x text-primary"></i>
+                    <h4 class="mt-3">Appointment Scheduling</h4>
+                    <p>Easily manage and schedule appointments for patients and doctors.</p>
+                </div>
+                <div class="col-md-4">
+                    <i class="fas fa-vials fa-3x text-success"></i>
+                    <h4 class="mt-3">Lab Tests</h4>
+                    <p>Track, order, and view test results securely.</p>
+                </div>
+                <div class="col-md-4">
+                    <i class="fas fa-user-md fa-3x text-danger"></i>
+                    <h4 class="mt-3">Specialist Consultations</h4>
+                    <p>Get expert advice from specialists across all fields.</p>
+                </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="feature">
-                <i class="bi bi-file-earmark-medical"></i>
-                <h3>Lab Test Management</h3>
-                <p>Effortlessly order, track, and view lab test results with a streamlined interface.</p>
+    </section>
+
+    <!-- Specializations Section -->
+    <section id="specializations" class="specializations py-5 bg-light">
+        <div class="container">
+            <h2 class="text-center mb-5">Our Specializations</h2>
+            <div id="specializationCarousel" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-inner">
+                    @for (int i = 0; i < Enum.GetValues(typeof(DoctorSpecialization)).Length; i++)
+                    {
+                        var spec = (DoctorSpecialization)i + 1;
+                        <div class="carousel-item @(i == 0 ? "active" : "")">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title text-primary">
+                                        <i class="fas fa-stethoscope"></i> @spec
+                                    </h5>
+                                    <p class="card-text">
+                                        @(
+                                            spec switch
+                                            {
+                                                DoctorSpecialization.Cardiologist => "Specialists in diagnosing and treating heart-related conditions such as coronary artery disease, arrhythmias, and heart failure.",
+                                                DoctorSpecialization.Dermatologist => "Experts in managing skin conditions, including acne, eczema, psoriasis, and skin cancer.",
+                                                DoctorSpecialization.Gynecologist => "Provides comprehensive care for female reproductive health, including childbirth, hormone disorders, and fertility issues.",
+                                                DoctorSpecialization.Neurologist => "Treats disorders of the nervous system, including stroke, epilepsy, migraines, and multiple sclerosis.",
+                                                DoctorSpecialization.Ophthalmologist => "Focuses on eye health, offering treatments for vision impairments, cataracts, glaucoma, and eye injuries.",
+                                                DoctorSpecialization.Pediatrician => "Specializes in the health and well-being of children, from newborns to adolescents, providing preventive care and treatment for illnesses.",
+                                                DoctorSpecialization.Psychiatrist => "Provides mental health care, diagnosing and treating conditions such as depression, anxiety, and schizophrenia.",
+                                                DoctorSpecialization.Radiologist => "Experts in medical imaging techniques like X-rays, MRIs, and CT scans to diagnose diseases and injuries.",
+                                                DoctorSpecialization.Surgeon => "Performs a wide range of surgical procedures to treat injuries, diseases, and deformities.",
+                                                DoctorSpecialization.Anesthesiologist => "Ensures patient safety and comfort during surgeries through the administration of anesthesia and pain management.",
+                                                DoctorSpecialization.Endocrinologist => "Treats hormonal imbalances and related conditions such as diabetes, thyroid disorders, and osteoporosis.",
+                                                DoctorSpecialization.Gastroenterologist => "Specializes in diagnosing and treating conditions of the digestive system, including ulcers, IBS, and liver diseases.",
+                                                DoctorSpecialization.Hematologist => "Focuses on blood-related disorders such as anemia, clotting issues, and leukemia.",
+                                                DoctorSpecialization.Immunologist => "Treats immune system disorders, including allergies, autoimmune diseases, and immunodeficiency conditions.",
+                                                DoctorSpecialization.InfectiousDisease => "Diagnoses and treats infections caused by bacteria, viruses, fungi, and parasites.",
+                                                DoctorSpecialization.Nephrologist => "Provides care for kidney-related conditions such as chronic kidney disease, kidney stones, and dialysis management.",
+                                                DoctorSpecialization.Oncologist => "Specializes in cancer diagnosis, treatment, and ongoing care for patients undergoing chemotherapy or radiation therapy.",
+                                                DoctorSpecialization.OrthopedicSurgeon => "Focuses on the musculoskeletal system, treating fractures, joint issues, and sports injuries.",
+                                                DoctorSpecialization.Pathologist => "Experts in diagnosing diseases through the examination of tissues, cells, and body fluids.",
+                                                DoctorSpecialization.PlasticSurgeon => "Performs reconstructive and cosmetic surgeries to improve function and appearance.",
+                                                DoctorSpecialization.Pulmonologist => "Treats respiratory system disorders such as asthma, COPD, and pulmonary fibrosis.",
+                                                DoctorSpecialization.Rheumatologist => "Focuses on autoimmune and inflammatory conditions such as arthritis and lupus.",
+                                                DoctorSpecialization.Urologist => "Manages urinary tract conditions and male reproductive health issues, including prostate problems and kidney stones.",
+                                                DoctorSpecialization.Otolaryngologist => "Treats ear, nose, and throat conditions, including sinusitis, hearing loss, and throat infections.",
+                                                DoctorSpecialization.Neonatologist => "Specializes in the care of newborns, especially premature or critically ill infants.",
+                                                DoctorSpecialization.VascularSurgeon => "Provides surgical care for blood vessel diseases, including aneurysms and peripheral artery disease.",
+                                                DoctorSpecialization.Geriatrician => "Focuses on the health and well-being of elderly patients, managing age-related diseases.",
+                                                DoctorSpecialization.Allergist => "Treats allergies, asthma, and immune system disorders with customized care.",
+                                                DoctorSpecialization.Dentist => "Provides oral health care, including preventive treatments, fillings, and cosmetic dentistry.",
+                                                DoctorSpecialization.Obstetrician => "Specializes in pregnancy, childbirth, and postpartum care.",
+                                                DoctorSpecialization.Hepatologist => "Focuses on diseases of the liver, gallbladder, and bile ducts.",
+                                                DoctorSpecialization.ThoracicSurgeon => "Performs surgical procedures on the chest, including the lungs, esophagus, and heart.",
+                                                DoctorSpecialization.EmergencyMedicine => "Provides immediate care for acute injuries and illnesses in emergency situations.",
+                                                DoctorSpecialization.FamilyMedicine => "Offers comprehensive health care for individuals and families across all ages.",
+                                                DoctorSpecialization.SportsMedicine => "Focuses on the treatment and prevention of sports-related injuries.",
+                                                DoctorSpecialization.BariatricSurgeon => "Specializes in weight loss surgeries for patients with obesity-related conditions.",
+                                                DoctorSpecialization.PalliativeCare => "Provides compassionate care for patients with serious illnesses, focusing on comfort and quality of life.",
+                                                DoctorSpecialization.PediatricSurgeon => "Performs surgical procedures for infants, children, and adolescents.",
+                                                DoctorSpecialization.CriticalCare => "Provides intensive care for critically ill patients in ICUs.",
+                                                DoctorSpecialization.OccupationalMedicine => "Manages workplace health, treating injuries and illnesses related to occupational hazards.",
+                                                DoctorSpecialization.MedicalGenetics => "Diagnoses and manages genetic disorders in patients of all ages.",
+                                                DoctorSpecialization.SleepMedicine => "Diagnoses and treats sleep disorders such as insomnia and sleep apnea.",
+                                                DoctorSpecialization.NuclearMedicine => "Uses radioactive materials for diagnosis and treatment of conditions such as cancer and thyroid diseases.",
+                                                _ => "Providing specialized care tailored to your needs."
+                                            }
+                                            )
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#specializationCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#specializationCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="feature">
-                <i class="bi bi-person-square"></i>
-                <h3>Patient Records</h3>
-                <p>Securely manage patient information with privacy and efficiency.</p>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container text-center">
+            <h2 class="mb-5">Features of Our System</h2>
+            <div class="row">
+                <div class="col-md-4">
+                    <i class="fas fa-lock fa-3x text-primary"></i>
+                    <h4 class="mt-3">Secure Data</h4>
+                    <p>Your data is encrypted and protected.</p>
+                </div>
+                <div class="col-md-4">
+                    <i class="fas fa-mobile-alt fa-3x text-success"></i>
+                    <h4 class="mt-3">Mobile-Friendly</h4>
+                    <p>Access your account from any device.</p>
+                </div>
+                <div class="col-md-4">
+                    <i class="fas fa-chart-line fa-3x text-danger"></i>
+                    <h4 class="mt-3">Analytics</h4>
+                    <p>Get detailed insights and reports.</p>
+                </div>
             </div>
         </div>
+    </section>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>&copy; 2024 Hospital Management System. All Rights Reserved.</p>
     </div>
-</div>
 
-<!-- Footer -->
-<div class="footer">
-    <p>&copy; 2024 Hospital Management System. All Rights Reserved.</p>
-</div>
+    <!-- Include Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const carousel = document.querySelector('#specializationCarousel');
+        const bsCarousel = new bootstrap.Carousel(carousel, {
+            interval: 5000, // Auto-slide every 3 seconds
+            wrap: true
+        });
+    </script>
+
+</body>
+</html>

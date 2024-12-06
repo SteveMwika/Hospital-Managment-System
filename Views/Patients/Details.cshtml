@@ -50,7 +50,9 @@
 </div>
 
 <div>
-    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+    <a asp-action="Index" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to List
+    </a>
     @if (User.IsInRole("Admin") || (User.IsInRole("Patient") && Model.UserId == User.FindFirstValue(ClaimTypes.NameIdentifier)))
     {
         <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit</a>

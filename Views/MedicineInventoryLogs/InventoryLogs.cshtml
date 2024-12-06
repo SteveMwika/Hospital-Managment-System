@@ -1,0 +1,142 @@
+﻿@model IEnumerable<Hospital_Managment_System.Models.MedicineInventoryLog>
+
+@{
+    ViewData["Title"] = "Inventory Logs";
+}
+
+<h1>Inventory Logs</h1>
+
+
+<div class="mb-3">
+    <!-- Button to navigate to Inventory Logs -->
+    <a asp-action="Index" class="btn btn-secondary mt-3">Back to Medicines</a>
+</div>
+
+
+<form method="get" asp-action="InventoryLogs" class="mb-4">
+    <div class="row align-items-end">
+        <!-- Filter by Medicine Change Type -->
+        <div class="col-md-3">
+            <label for="changeType" class="form-label">Change Type</label>
+            <select id="changeType" name="changeType" class="form-select">
+                <option value="">-- All Types --</option>
+                @foreach (var type in ViewBag.ChangeTypes)
+                {
+                    <option value="@type">@type</option>
+                }
+            </select>
+        </div>
+
+        <!-- Search by Patient Name -->
+        <div class="col-md-3">
+            <label for="patientSearch" class="form-label">Patient Name</label>
+            <div class="input-group shadow-sm">
+                <input type="text" id="patientSearch" name="patientName" class="form-control" placeholder="Search patients by name..." aria-label="Search patients">
+                <datalist id="patientSuggestions">
+                    @foreach (var patient in ViewBag.Patients)
+                    {
+                        <option value="@patient.FullName"></option>
+                    }
+                </datalist>
+            </div>
+        </div>
+
+        <!-- Search by Doctor Name -->
+        <div class="col-md-3">
+            <label for="doctorSearch" class="form-label">Doctor Name</label>
+            <div class="input-group shadow-sm">
+                <input type="text" id="doctorSearch" name="doctorId" class="form-control" placeholder="Search doctors by name..." aria-label="Search doctors">
+                <datalist id="doctorSuggestions">
+                    @foreach (var doctor in ViewBag.Doctors)
+                    {
+                        <option value="@doctor.FullName"></option>
+                    }
+                </datalist>
+            </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="col-md-3">
+            <label class="form-label d-none">Filter</label>
+            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-filter"></i> Filter Logs</button>
+        </div>
+    </div>
+</form>
+
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Date/Time</th>
+            <th>Medicine</th>
+            <th>Change Type</th>
+            <th>Quantity Changed</th>
+            <th>New Quantity</th>
+            <th>Doctor</th>
+            <th>Patient</th>
+            <th>Admin</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var log in Model)
+        {
+            <tr>
+                <td>@log.DateTime</td>
+                <td>@log.Medicine.Name</td>
+                <td>@log.ChangeType</td>
+                <td>@log.QuantityChanged</td>
+                <td>@log.NewQuantity</td>
+                <td>@log.Doctor?.FirstName @log.Doctor?.LastName</td>
+                <td>@log.Patient?.FirstName @log.Patient?.LastName</td>
+                <td>@log.AdminUser?.UserName</td>
+                <td>@log.Description</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@section Scripts {
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script>
+        $(document).ready(function () {
+            // Autocomplete for doctor search
+            $('#doctorSearch').autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: '@Url.Action("GetDoctorSuggestions", "Doctors")',
+                        dataType: 'json',
+                        data: { term: request.term },
+                        success: function (data) {
+                            response(data);
+                        }
+                    });
+                },
+                minLength: 2, // Trigger after two characters
+                select: function (event, ui) {
+                    $('#doctorSearch').val(ui.item.value); // Set value on selection
+                    $('#doctorSearchForm').submit(); // Submit form on select
+                }
+            });
+
+            // Autocomplete for patient search
+            $('#patientSearch').autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: '@Url.Action("GetPatientSuggestions", "Patients")',
+                        dataType: 'json',
+                        data: { term: request.term },
+                        success: function (data) {
+                            response(data);
+                        }
+                    });
+                },
+                minLength: 2, // Trigger after two characters
+                select: function (event, ui) {
+                    $('#patientSearch').val(ui.item.value); // Set value on selection
+                    $('#patientSearchForm').submit(); // Submit form on select
+                }
+            });
+        });
+    </script>
+}
