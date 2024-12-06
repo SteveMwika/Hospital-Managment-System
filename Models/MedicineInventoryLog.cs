@@ -37,7 +37,7 @@ namespace Hospital_Managment_System.Models
         public Prescription Prescription { get; set; }
 
         // For admin actions
-        public string AdminUserId { get; set; }
+        public string? AdminUserId { get; set; } // Make it nullable
         public IdentityUser AdminUser { get; set; }
 
         [StringLength(500)]

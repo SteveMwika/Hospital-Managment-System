@@ -13,7 +13,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Hospital_Managment_System.Controllers
 {
-    [Authorize(Roles = "Doctor, Patient")]
     public class LabTestsController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -47,6 +46,64 @@ namespace Hospital_Managment_System.Controllers
 
             return View(patientsWithLabTests);
         }
+
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> AdminIndex(string doctorName, string patientName, string testName, DateTime? startDate, DateTime? endDate)
+        {
+            var labTestsQuery = _context.LabTests
+                .Include(t => t.Appointment)
+                .ThenInclude(a => a.Patient)
+                .Include(t => t.Appointment)
+                .ThenInclude(a => a.Doctors)
+                .AsQueryable();
+
+            // Filter by Doctor Name
+            if (!string.IsNullOrEmpty(doctorName))
+            {
+                labTestsQuery = labTestsQuery.Where(t =>
+                    t.Appointment.Doctors.Any(d =>
+                        EF.Functions.Like(d.FirstName + " " + d.LastName, $"%{doctorName}%")
+                    ));
+            }
+
+            // Filter by Patient Name
+            if (!string.IsNullOrEmpty(patientName))
+            {
+                labTestsQuery = labTestsQuery.Where(t =>
+                    EF.Functions.Like(t.Appointment.Patient.FirstName + " " + t.Appointment.Patient.LastName, $"%{patientName}%"));
+            }
+
+            // Filter by Test Name
+            if (!string.IsNullOrEmpty(testName))
+            {
+                if (Enum.TryParse(testName, out LabTestName parsedTestName))
+                {
+                    labTestsQuery = labTestsQuery.Where(t => t.TestName == parsedTestName);
+                }
+                else
+                {
+                    // If testName doesn't match any enum value, return an empty result
+                    labTestsQuery = labTestsQuery.Where(t => false);
+                }
+            }
+
+            // Filter by Start Date
+            if (startDate.HasValue)
+            {
+                labTestsQuery = labTestsQuery.Where(t => t.TestDate >= startDate.Value);
+            }
+
+            // Filter by End Date
+            if (endDate.HasValue)
+            {
+                labTestsQuery = labTestsQuery.Where(t => t.TestDate <= endDate.Value);
+            }
+
+            var labTests = await labTestsQuery.ToListAsync();
+            return View(labTests);
+        }
+
+
 
         // GET: LabTests/ViewOrderedTests/5
         [Authorize(Roles = "Doctor")]

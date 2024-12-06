@@ -7,12 +7,17 @@
 
 <h1>Patients</h1>
 
-<p>
+<div class="mb-3">
+    @if (User.IsInRole("Doctor"))
+    {
+        <a asp-action="Index" asp-route-filter="PrimaryPatients" class="btn btn-primary">View Primary Patients</a>
+        <a asp-action="Index" asp-route-filter="AllPatients" class="btn btn-secondary">View All Associated Patients</a>
+    }
     @if (User.IsInRole("Admin"))
     {
-        <a asp-action="Create" class="btn btn-primary">Create New Patient</a>
+        <a asp-action="Create" class="btn btn-success">Create New Patient</a>
     }
-</p>
+</div>
 
 <table class="table table-striped">
     <thead>
@@ -39,13 +44,17 @@
                     @if (User.IsInRole("Admin") || (User.IsInRole("Patient") && patient.UserId == User.FindFirstValue(ClaimTypes.NameIdentifier)))
                     {
                         <div>
-                            <a asp-action="Edit" asp-route-id="@patient.Id" class="btn btn-warning">Edit</a>
+                            <a asp-action="Edit" asp-route-id="@patient.Id" asp-route-referrer="Index" class="btn btn-warning">
+                                Edit
+                            </a>
                         </div>
                     }
                     @if (User.IsInRole("Admin"))
                     {
                         <div>
-                            <a asp-action="Delete" asp-route-id="@patient.Id" class="btn btn-danger">Delete</a>
+                            <a asp-action="Delete" asp-route-id="@patient.Id" class="btn btn-danger">
+                                Delete
+                            </a>
                         </div>
                     }
                 </td>

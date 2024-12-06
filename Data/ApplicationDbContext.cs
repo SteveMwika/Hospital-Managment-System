@@ -69,10 +69,10 @@ namespace Hospital_Managment_System.Data
                 entity.HasKey(d => d.Id);
                 entity.Property(d => d.FirstName)
                       .IsRequired()
-                      .HasMaxLength(100);
+                      .HasMaxLength(50);
                 entity.Property(d => d.LastName)
                       .IsRequired()
-                      .HasMaxLength(100);
+                      .HasMaxLength(50);
                 entity.Property(d => d.Email)
                       .IsRequired()
                       .HasMaxLength(100);
@@ -122,6 +122,7 @@ namespace Hospital_Managment_System.Data
                 entity.HasOne(d => d.User)
                       .WithMany()
                       .HasForeignKey(d => d.UserId)
+                      .IsRequired(true)
                       .OnDelete(DeleteBehavior.Restrict);
             });
 
@@ -162,6 +163,7 @@ namespace Hospital_Managment_System.Data
                 entity.HasOne(p => p.User)
                       .WithMany()
                       .HasForeignKey(p => p.UserId)
+                      .IsRequired(true)
                       .OnDelete(DeleteBehavior.Restrict);
 
                 // Relationship with PrimaryDoctor
@@ -355,7 +357,8 @@ namespace Hospital_Managment_System.Data
                 entity.HasOne(m => m.AdminUser)
                       .WithMany()
                       .HasForeignKey(m => m.AdminUserId)
-                      .OnDelete(DeleteBehavior.Restrict);
+                      .OnDelete(DeleteBehavior.Restrict)
+                      .IsRequired(false);
             });
         }
     }

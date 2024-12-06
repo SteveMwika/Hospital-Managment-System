@@ -58,4 +58,23 @@
             </dl>
         </div>
     </div>
+
+    @using System.Security.Claims
+
+    <!-- Add Edit Button -->
+    <div class="mt-4">
+        @if (User.IsInRole("Admin") || (User.IsInRole("Patient") && Model.UserId == User.FindFirst(ClaimTypes.NameIdentifier)?.Value))
+        {
+            <a asp-action="Edit" asp-controller="Patients" asp-route-id="@Model.Id" asp-route-referrer="MyDetails" class="btn btn-warning">
+                Edit Patient Details
+            </a>
+
+            <!-- Back Button -->
+            <a asp-action="Index" class="btn btn-secondary">
+                Back to Patients
+            </a>
+            
+        }
+    </div>
 </div>
+

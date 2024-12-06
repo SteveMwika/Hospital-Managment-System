@@ -1,0 +1,28 @@
+﻿@model Hospital_Managment_System.Models.Medicine
+
+@{
+    ViewData["Title"] = "Add to Inventory";
+}
+
+<h1>Add to Inventory</h1>
+
+<h3>Medicine: @Model.Name</h3>
+<p>Description: @Model.Description</p>
+<p>Current Quantity: @Model.Quantity</p>
+
+<form asp-action="AddToInventory" method="post">
+    <input type="hidden" name="medicineId" value="@Model.Id" />
+
+    <div class="form-group">
+        <label for="quantityAdded">Quantity to Add</label>
+        <input type="number" id="quantityAdded" name="quantityAdded" class="form-control" min="1" required />
+    </div>
+
+    <div class="form-group mt-3">
+        <label for="description">Description (Optional)</label>
+        <textarea id="description" name="description" class="form-control" rows="3"></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-success mt-3">Add to Inventory</button>
+    <a asp-action="Index" class="btn btn-secondary mt-3">Cancel</a>
+</form>

@@ -1,0 +1,42 @@
+﻿@model IEnumerable<Hospital_Managment_System.Models.Medicine>
+
+@{
+    ViewData["Title"] = "Manage Medicines";
+}
+
+<h1>Manage Medicines</h1>
+
+<div class="mb-3">
+    <!-- Button to navigate to Inventory Logs -->
+    <a asp-action="InventoryLogs" class="btn btn-secondary">View Inventory Logs</a>
+</div>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Price</th>
+            <th>Quantity Available</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var medicine in Model)
+        {
+            <tr>
+                <td>@medicine.Id</td>
+                <td>@medicine.Name</td>
+                <td>@medicine.Description</td>
+                <td>@medicine.Price?.ToString("C")</td>
+                <td>@medicine.Quantity</td>
+                <td>
+                    <a asp-action="AddToInventory" asp-route-medicineId="@medicine.Id" class="btn btn-primary">Add Quantity</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+

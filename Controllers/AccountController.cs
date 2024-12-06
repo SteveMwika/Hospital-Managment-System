@@ -17,12 +17,7 @@ namespace Hospital_Managment_System.Controllers
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ApplicationDbContext _context;
 
-        public AccountController(
-            UserManager<IdentityUser> userManager,
-            SignInManager<IdentityUser> signInManager,
-            RoleManager<IdentityRole> roleManager,
-            ApplicationDbContext context
-            )
+        public AccountController(UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager, RoleManager<IdentityRole> roleManager, ApplicationDbContext context)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -40,35 +35,41 @@ namespace Hospital_Managment_System.Controllers
         // POST: Account/Login
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginViewModel model, string returnUrl = null)
+        public async Task<IActionResult> Login(LoginViewModel model)
         {
-            ViewData["ReturnUrl"] = returnUrl;
-
-            // Check if the form input is valid
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                // Find the user by email
-                var user = await _userManager.FindByEmailAsync(model.Email);
-                if (user != null)
-                {
-                    // Attempt to sign in
-                    var result = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, lockoutOnFailure: false);
-                    if (result.Succeeded)
-                    {
-                        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-                        {
-                            return Redirect(returnUrl);
-                        }
-                        else
-                        {
-                            return RedirectToAction("Index", "Home");
-                        }
-                    }
-                }
-                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                return View(model);
             }
 
-            // If ModelState is not valid or login failed, return the view with validation errors
+            var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
+
+            if (result.Succeeded)
+            {
+                var user = await _userManager.FindByEmailAsync(model.Email);
+                var roles = await _userManager.GetRolesAsync(user);
+
+                // Redirect based on role
+                if (roles.Contains("Admin"))
+                {
+                    return RedirectToAction("AdminIndex", "Home");
+                }
+                else if (roles.Contains("Doctor"))
+                {
+                    return RedirectToAction("DoctorIndex", "Home");
+                }
+                else if (roles.Contains("Patient"))
+                {
+                    return RedirectToAction("PatientIndex", "Home");
+                }
+                else
+                {
+                    // Default fallback if no role is found
+                    return RedirectToAction("Index", "Home");
+                }
+            }
+
+            ModelState.AddModelError("", "Invalid login attempt.");
             return View(model);
         }
 

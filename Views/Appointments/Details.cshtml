@@ -76,7 +76,6 @@
         </dl>
     </section>
 
-    <!-- Billing Information (Visible to Patient) -->
     <!-- Billing Information (Visible to Patient and Admin only) -->
     @if (User.IsInRole("Patient") || User.IsInRole("Admin"))
     {
@@ -123,7 +122,7 @@
     <section class="mb-5">
         <h3 class="text-dark">Prescriptions</h3>
         <hr />
-        @if (Model.Prescriptions.Any())
+        @if (Model.Prescriptions != null && Model.Prescriptions.Any())
         {
             <table class="table table-bordered">
                 <thead>
@@ -139,17 +138,60 @@
                     @foreach (var prescription in Model.Prescriptions)
                     {
                         <tr>
-                            <td>@prescription.Medicine.Name</td>
-                            <td>@prescription.Instructions</td>
-                            <td>Dr. @prescription.Doctor.FirstName @prescription.Doctor.LastName</td> <!-- Assuming Prescription has Doctor property -->
-                            <td>@Model.Patient.FirstName @Model.Patient.LastName</td>
+                            <!-- Check for null Medicine -->
                             <td>
-                                <ul>
-                                    <li>Name: @prescription.Medicine.Name</li>
-                                    <li>Description: @prescription.Medicine.Description</li>
-                                    <li>Price: $@prescription.Medicine.Price</li>
-                                    <li>Bill: @Model.Billing.Status "</li>
-                                </ul>
+                                @if (prescription.Medicine != null)
+                                {
+                                    @prescription.Medicine.Name
+                                }
+                                else
+                                {
+                                    <span class="text-danger">No Medicine Assigned</span>
+                                }
+                            </td>
+
+                            <!-- Prescription Instructions -->
+                            <td>@prescription.Instructions ?? "No instructions available"</td>
+
+                            <!-- Check for null Doctor -->
+                            <td>
+                                @if (prescription.Doctor != null)
+                                {
+                                    @($"Dr. {prescription.Doctor.FirstName} {prescription.Doctor.LastName}")
+                                }
+                                else
+                                {
+                                    <span class="text-danger">No Doctor Assigned</span>
+                                }
+                            </td>
+
+                            <!-- Prescribed To -->
+                            <td>
+                                @if (Model.Patient != null)
+                                {
+                                    @Model.Patient.FirstName @Model.Patient.LastName
+                                }
+                                else
+                                {
+                                    <span class="text-danger">No Patient Assigned</span>
+                                }
+                            </td>
+
+                            <!-- Medicine Info -->
+                            <td>
+                                @if (prescription.Medicine != null)
+                                {
+                                    <ul>
+                                        <li>Name: @prescription.Medicine.Name</li>
+                                        <li>Description: @prescription.Medicine.Description</li>
+                                        <li>Price: $@(prescription.Medicine.Price?.ToString("F2") ?? "0.00")</li>
+                                        <li>Bill: @(Model.Billing != null ? Model.Billing.Status.ToString() : "No Billing Info")</li>
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <p class="text-danger">No Medicine Information Available</p>
+                                }
                             </td>
                         </tr>
                     }
@@ -196,8 +238,30 @@
         }
     </section>
 
+    @inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+
     <!-- Back Button -->
     <div class="form-group mb-4">
-        <a href="@Url.Action("Index", "Appointments")" class="btn btn-secondary">Back to Appointments</a>
+        @if (HttpContextAccessor.HttpContext.Request.Query["referrer"] == "AdminViewPrescriptions")
+        {
+            <a href="@Url.Action("AdminViewPrescriptions", "Prescriptions")" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Prescriptions
+            </a>
+        }
+        else if (HttpContextAccessor.HttpContext.Request.Query["referrer"] == "AdminIndex")
+        {
+            <a href="@Url.Action("AdminIndex", "LabTests")" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to LabTests
+            </a>
+        }
+        else
+        {
+            <a href="@Url.Action("Index", "Appointments")" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Appointments
+            </a>
+        }
     </div>
+
 </div>
+
+

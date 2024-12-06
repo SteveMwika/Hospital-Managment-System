@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using FluentEmail.Core;
 using Hospital_Managment_System.Data;
 using Hospital_Managment_System.Enums;
 using Hospital_Managment_System.Models;
 using Hospital_Managment_System.Models.ViewModels;
+using Hospital_Managment_System.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -19,11 +21,15 @@ namespace Hospital_Managment_System.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<IdentityUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly IFluentEmail _emailSender;
 
-        public DoctorsController(ApplicationDbContext context, UserManager<IdentityUser> userManager)
+        public DoctorsController(ApplicationDbContext context, UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, IFluentEmail emailSender)
         {
             _context = context;
             _userManager = userManager;
+            _roleManager = roleManager;
+            _emailSender = emailSender;
         }
 
         //GET: Doctors : Index
@@ -53,7 +59,11 @@ namespace Hospital_Managment_System.Controllers
             // Filter by specialization if selected
             if (!string.IsNullOrEmpty(specialization))
             {
-                doctorsQuery = doctorsQuery.Where(d => d.Specialization.ToString() == specialization);
+                if (Enum.TryParse(typeof(DoctorSpecialization), specialization, out var specializationEnum))
+                {
+                    var specValue = (DoctorSpecialization)specializationEnum;
+                    doctorsQuery = doctorsQuery.Where(d => d.Specialization == specValue);
+                }
             }
 
             // Filter for doctors available to be primary doctor
@@ -192,8 +202,11 @@ namespace Hospital_Managment_System.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create(DoctorViewModel model)
         {
-            if (!ModelState.IsValid)
+            if (ModelState.IsValid)
             {
+                // Default password for doctors
+                const string defaultPassword = "Password123";
+
                 // Create a new IdentityUser for the Doctor
                 var user = new IdentityUser
                 {
@@ -202,7 +215,9 @@ namespace Hospital_Managment_System.Controllers
                     EmailConfirmed = true
                 };
 
-                var result = await _userManager.CreateAsync(user, model.Password);
+                // Create the user with the default password
+                var result = await _userManager.CreateAsync(user, defaultPassword);
+
                 if (result.Succeeded)
                 {
                     // Assign the Doctor role
@@ -314,7 +329,7 @@ namespace Hospital_Managment_System.Controllers
                 }
             }
 
-            if (!ModelState.IsValid)
+            if (ModelState.IsValid)
             {
                 try
                 {
@@ -412,26 +427,28 @@ namespace Hospital_Managment_System.Controllers
         }
 
         // POST: Doctors/Delete/5
-        [HttpPost, ActionName("Delete")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public async Task<IActionResult> Delete(int id)
         {
             var doctor = await _context.Doctors.FindAsync(id);
             if (doctor != null)
             {
-                // Delete associated IdentityUser
+                // Remove the Doctor entity
+                _context.Doctors.Remove(doctor);
+                await _context.SaveChangesAsync();
+
+                // Delete the associated IdentityUser
                 var user = await _userManager.FindByIdAsync(doctor.UserId);
                 if (user != null)
                 {
                     await _userManager.DeleteAsync(user);
                 }
-
-                _context.Doctors.Remove(doctor);
-                await _context.SaveChangesAsync();
             }
             return RedirectToAction(nameof(Index));
         }
+
 
         [Authorize(Roles = "Doctor")]
         public async Task<IActionResult> MyProfile()
